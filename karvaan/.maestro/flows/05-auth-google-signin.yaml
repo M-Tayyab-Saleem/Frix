@@ -1,0 +1,153 @@
+# TICKET 045 — Auth & Conversion E2E Tests
+# Tests: Google Sign-In from SoftAuthGateModal → InterestSelect → HomeScreen
+
+appId: com.frix.app
+name: Google Sign-In — SoftAuthGateModal Flow
+
+---
+
+# Start as guest and trigger soft gate via Get Tickets
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+# Wait for onboarding
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+# Skip onboarding
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+# Verify GuestTabNavigator loads
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+# Navigate to a venue detail
+- tapOn:
+    id: "venue-card"
+    index: 0
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+# Tap "Get Tickets" → SoftAuthGateModal appears
+- tapOn:
+    id: "get-tickets-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 5000
+
+# Tap "Continue with Google" → AuthScreen opens
+- tapOn:
+    text: "Continue with Google"
+    timeout: 3000
+
+# Verify AuthScreen appears with Google pre-selected
+- assertVisible:
+    id: "auth-screen"
+    timeout: 5000
+
+# Simulate Google OAuth completion
+# Note: In real E2E, this would trigger actual Google sign-in
+# For testing, we mock the OAuth flow
+- tapOn:
+    id: "google-signin-button"
+    timeout: 3000
+
+# Wait for Google OAuth sheet (simulated)
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Simulate Google account selection (mocked in test environment)
+# After successful OAuth → mergeGuestSession fires
+# Verify InterestSelectScreen appears (assuming no interests set)
+- assertVisible:
+    text: "What are you into?"
+    timeout: 10000
+
+# Verify interest selection grid is visible
+- assertVisible:
+    id: "interest-select-screen"
+    timeout: 5000
+
+# Select at least one interest (e.g., "Historical")
+- tapOn:
+    text: "Historical"
+    timeout: 3000
+
+# Verify Continue button is enabled
+- assertVisible:
+    id: "continue-button-enabled"
+    timeout: 3000
+
+# Tap Continue → save interests → route to HomeScreen
+- tapOn:
+    id: "continue-button"
+    timeout: 3000
+
+# Wait for navigation to complete
+- waitForAnimationToEnd:
+    timeout: 1000
+
+# Verify MainTabNavigator loads (HomeScreen active)
+- assertVisible:
+    id: "home-screen"
+    timeout: 10000
+
+# Verify personalized feed is shown (not GuestHomeScreen)
+- assertVisible:
+    text: "Discover Karachi"
+    timeout: 5000
+
+# Verify guest_uuid is deleted from MMKV
+# Manual verification required:
+# - Check PostHog Live View for guest_converted event with correct guest_uuid
+# - Verify MMKV 'guest_uuid' key is deleted after conversion
+# - Verify PostHog alias call linked old guest_uuid to new userId
+
+---
+appId: com.frix.app
+name: Google Sign-In — Returning User with Interests
+
+---
+
+# Simulate returning authenticated user who already has interests
+# This test assumes a pre-existing session with profile.preferences set
+
+# Launch app with existing session
+- launchApp:
+    appId: com.frix.app
+    clearState: false
+    clearKeychain: false
+
+# Should skip onboarding and auth, go directly to MainTabNavigator
+- assertVisible:
+    id: "splash-screen-logo"
+    timeout: 3000
+
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Should land on HomeScreen (MainTabNavigator)
+- assertVisible:
+    id: "home-screen"
+    timeout: 10000
+
+# Verify no InterestSelectScreen shown
+- assertNotVisible:
+    text: "What are you into?"
+    timeout: 5000
+
+# Verify personalized content is shown
+- assertVisible:
+    text: "Discover Karachi"
+    timeout: 5000

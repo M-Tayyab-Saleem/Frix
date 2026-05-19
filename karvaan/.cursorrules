@@ -1,0 +1,571 @@
+# FRIX — Cursor Rules
+# React Native (Expo SDK 53 Bare) | TypeScript 5.6+ | Supabase v2 | Phase 1: Discovery + Guest-First Auth
+# v4.0 — Updated: Guest model, Obsidian Curator design system, dual-theme, package versions
+
+## IDENTITY
+You are an expert React Native engineer building Frix — a venue discovery app for Karachi, Pakistan.
+
+**Stack:** Expo Bare Workflow (SDK 53), Strict TypeScript 5.6+, Supabase JS v2.46+, Zustand v5, TanStack Query v5.62+, React Navigation v7 (Native Stack), NativeWind v4.1+, FlashList v1.7+, expo-image v2+, react-native-mmkv v3.1+, react-native-reanimated v3.16+, react-native-bottom-sheet v5.1+, expo-linear-gradient v14+, Sentry v6+, PostHog v2.5+.
+
+---
+
+## ABSOLUTE RULES — NEVER VIOLATE THESE
+
+### Forbidden patterns — if you write any of these, you are wrong:
+- NEVER use `<FlatList>` or `<ScrollView>` for venue lists → use `<FlashList>` from @shopify/flash-list
+- NEVER use `<Image>` from react-native → use `<Image>` from expo-image
+- NEVER use `AsyncStorage` → use the MMKV singleton from `@/lib/storage`
+- NEVER call Supabase directly inside a component or screen → always go through a custom hook in /features
+- NEVER use `any` type in TypeScript — use `unknown` or define the proper interface
+- NEVER hardcode colors, font sizes, or spacing → always use values from `useThemeStore().theme`
+- NEVER use `useState` + `useEffect` to fetch data → use TanStack Query `useQuery` / `useMutation`
+- NEVER store server data in Zustand → Zustand is for session/auth/UI/theme state only
+- NEVER use `StyleSheet.create` with hardcoded hex values → use NativeWind className + theme tokens
+- NEVER commit or reference `.env` values directly — always use `process.env.EXPO_PUBLIC_*`
+- NEVER use 1px solid borders to wrap cards or sections → use tonal surface elevation instead
+- NEVER use hardcoded corner radii on cards → use `theme.borderRadius.sm` (2px) for the editorial sharp look
+- NEVER use `<Modal>` from react-native for bottom sheets → use `@gorhom/bottom-sheet` (react-native-bottom-sheet v5)
+- NEVER call PostHog directly → always use `@/services/analytics`. Every event MUST include `is_guest` and `guest_uuid`.
+- NEVER hard-block a guest from navigating → always use `SoftAuthGateModal` for gated actions
+
+---
+
+## FILE & FOLDER RULES
+
+```
+src/
+  app/          → App.tsx, global providers only
+  components/   → atomic, reusable UI (no business logic, no Supabase calls)
+                  → SoftAuthGateModal.tsx, EmptyState.tsx, SkeletonCard.tsx, PrimaryButton.tsx
+  constants/    → theme.ts (dual theme), queryKeys.ts, routes.ts only
+  features/
+    auth/       → GuestHomeScreen.tsx, LoginScreen.tsx, OTPScreen.tsx, SignUpScreen.tsx, SplashScreen.tsx
+    explore/    → ExploreScreen, VenueDetailScreen, CategoryListScreen, PlaceDetailScreen
+    home/       → HomeScreen, hooks
+    map/        → MapScreen, location hooks
+    profile/    → ProfileScreen, EditProfileScreen, useProfile
+    search/     → SearchScreen, useVenueSearch
+    wallet/     → scaffold only in Phase 1, no implementation
+  lib/          → supabase.ts, sentry.ts, storage.ts (MMKV singleton + STORAGE_KEYS)
+  navigation/   → RootNavigator.tsx, AuthStackNavigator.tsx, GuestTabNavigator.tsx, MainTabNavigator.tsx
+  services/     → analytics.ts (PostHog wrapper with is_guest enforcement), logger.ts (Sentry)
+  store/        → useAuthStore.ts (isGuest + guestUuid + mergeGuestSession), useAppStore.ts, useThemeStore.ts
+  types/        → Venue, Category, Profile, GuestSession, and other global interfaces
+  utils/        → dateFormatter, currencyFormatter, imageUrl, openNowUtils, guestUtils
+```
+
+### Naming conventions:
+- Screens: `PascalCase` + `Screen` suffix → `HomeScreen.tsx`, `VenueDetailScreen.tsx`
+- Hooks: `camelCase` + `use` prefix → `useVenues.ts`, `useNearbyVenues.ts`
+- Components: `PascalCase` → `VenueCard.tsx`, `EmptyState.tsx`, `SoftAuthGateModal.tsx`
+- Services: `camelCase` → `analytics.ts`, `logger.ts`
+- Types: `PascalCase` → `Venue`, `Category`, `UserProfile`
+- Constants: `SCREAMING_SNAKE_CASE` → `QUERY_KEYS`, `ROUTES`, `STORAGE_KEYS`
+- All files: `.tsx` if JSX present, `.ts` otherwise
+
+---
+
+## TYPESCRIPT RULES
+
+- All files must have explicit return types on exported functions
+- All interfaces go in `/src/types/` if used across features, or in the feature's `types.ts` if local
+- No `any` — use `unknown` and type-narrow, or define the interface
+- Prefer `interface` over `type` for object shapes
+- Use `as const` on all query key arrays
+
+```typescript
+// CORRECT
+interface Venue {
+  id: string;
+  name: string;
+  description: string | null;
+  frix_notes: string | null;
+  category_id: string | null;
+  city: string;
+  neighbourhood: string | null;
+  address_line: string | null;
+  coordinates: { lat: number; lng: number } | null;
+  base_price: number;
+  currency: string;
+  operating_hours: OperatingHours | null;
+  images: string[];
+  contact_phone: string | null;
+  contact_email: string | null;
+  website_url: string | null;
+  is_active: boolean;
+  is_bookable: boolean;
+  created_at: string;
+  categories?: Category;
+  venue_updates?: VenueUpdate[];
+}
+
+// WRONG
+const venue: any = await fetchVenue();
+```
+
+---
+
+## AUTH STATE RULES [NEW v4]
+
+The app has THREE auth states. ALWAYS handle all three:
+
+```typescript
+// In any component that needs to know auth state:
+const { session, isGuest, guestUuid } = useAuthStore();
+
+// Three-state pattern:
+if (isLoading) { /* show nothing or skeleton */ }
+if (session) { /* authenticated behaviour */ }
+if (isGuest) { /* guest behaviour — never block, use SoftAuthGateModal for gated actions */ }
+```
+
+### When to show SoftAuthGateModal:
+- Guest taps Save/bookmark icon on any venue card
+- Guest taps "Get Tickets" CTA
+- Guest taps "Report an Issue" button
+
+### When NOT to use SoftAuthGateModal:
+- Guest browsing ExploreScreen, MapScreen, SearchScreen
+- Guest viewing VenueDetailScreen content (images, notes, hours, map)
+- Guest tapping Share button (sharing is always allowed)
+
+### Guest UUID management:
+```typescript
+// CORRECT — read from MMKV via useAuthStore
+const { guestUuid } = useAuthStore();
+
+// WRONG — never generate UUID in a component
+const id = uuidv4(); // Only useAuthStore.initGuest() may do this
+```
+
+---
+
+## DATA FETCHING RULES
+
+Every Supabase call must follow this exact pattern:
+
+```typescript
+// src/features/explore/hooks/useVenues.ts
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { QUERY_KEYS } from '@/constants/queryKeys';
+import type { Venue } from '@/types';
+
+export const useVenues = (categoryId?: string) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.VENUES, categoryId],
+    queryFn: async (): Promise<Venue[]> => {
+      let query = supabase
+        .from('venues')
+        .select('*, categories(*), venue_updates(*)')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (categoryId) query = query.eq('category_id', categoryId);
+
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    retry: 3,
+  });
+};
+```
+
+---
+
+## STATE MANAGEMENT RULES
+
+- **Zustand** = session, auth loading, `isGuest`, `guestUuid`, UI toggles, theme
+- **TanStack Query** = all server data (venues, categories, profile from DB)
+- **MMKV** = local persistence (recently viewed, onboarding seen, theme, `guest_uuid`)
+
+```typescript
+// STORAGE_KEYS — the only valid MMKV keys:
+export const STORAGE_KEYS = {
+  RECENTLY_VIEWED: 'recentlyViewed',
+  RECENT_SEARCHES: 'recentSearches',
+  ONBOARDING_SEEN: 'hasSeenOnboarding',
+  USER_THEME: 'userTheme',
+  GUEST_UUID: 'guest_uuid',         // [NEW v4] NEVER regenerate once set
+} as const;
+```
+
+---
+
+## COMPONENT RULES
+
+### List rendering:
+```tsx
+// ALWAYS — for any list of venues or categories
+import { FlashList } from '@shopify/flash-list';
+
+<FlashList
+  data={venues}
+  renderItem={({ item }) => <VenueCard venue={item} />}
+  estimatedItemSize={280}
+  keyExtractor={(item) => item.id}
+  onEndReached={fetchNextPage}
+  onEndReachedThreshold={0.5}
+/>
+```
+
+### Image rendering:
+```tsx
+// ALWAYS — never use RN's built-in Image
+import { Image } from 'expo-image';
+
+<Image
+  source={{ uri: venue.images?.[0] ?? PLACEHOLDER_IMAGE_URL }}
+  placeholder="LKN]Rv%2Tw=w]~U@D*I=x]x]v~E8"
+  contentFit="cover"
+  transition={200}
+  cachePolicy="memory-disk"
+  style={styles.image}
+/>
+```
+
+### Bottom sheets (modals):
+```tsx
+// ALWAYS — use react-native-bottom-sheet, never Modal from react-native
+import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+
+const ref = useRef<BottomSheet>(null);
+
+<BottomSheet
+  ref={ref}
+  snapPoints={['40%']}
+  backdropComponent={BottomSheetBackdrop}
+  backgroundStyle={{ backgroundColor: theme.colors.surfaceHighest }}
+  handleIndicatorStyle={{ backgroundColor: theme.colors.onSurfaceVariant }}
+>
+  {/* Modal content */}
+</BottomSheet>
+```
+
+### Every screen must handle these states:
+```tsx
+const { data, isLoading, isError, refetch } = useVenues();
+
+if (isLoading) return <SkeletonList />;
+if (isError) return <OfflineState onRetry={refetch} />;
+if (!data?.length) return <EmptyState message="No venues here yet" />;
+```
+
+### VenueCard bookmark button — guest check:
+```tsx
+// CORRECT — check isGuest before mutation
+const { isGuest } = useAuthStore();
+const [showGate, setShowGate] = useState(false);
+
+const handleBookmark = () => {
+  if (isGuest) {
+    setShowGate(true); // Opens SoftAuthGateModal
+    Analytics.softGateTriggered('save_venue', venue.id, isGuest, guestUuid);
+    return;
+  }
+  toggleSave.mutate(!isSaved);
+};
+```
+
+---
+
+## DESIGN SYSTEM RULES — THE OBSIDIAN CURATOR [NEW v4]
+
+### Always use `useThemeStore` to get the current theme:
+```tsx
+import { useThemeStore } from '@/store/useThemeStore';
+
+const MyComponent = () => {
+  const { theme, isDarkMode } = useThemeStore();
+  // Use theme.colors.*, theme.typography.*, theme.spacing.*
+};
+```
+
+### Typography — Noto Serif for headlines, Manrope for body/UI:
+```tsx
+// CORRECT — headline (editorial)
+<Text style={[theme.typography.headlineLarge, { color: theme.colors.onSurface }]}>
+  Mohatta Palace
+</Text>
+
+// CORRECT — label (metadata, uppercase)
+<Text style={[theme.typography.labelLarge, { color: theme.colors.onSurfaceVariant }]}>
+  HISTORICAL · CLIFTON
+</Text>
+
+// WRONG — no hardcoded fonts or sizes
+<Text style={{ fontSize: 24, fontWeight: '700', fontFamily: 'serif' }}>
+```
+
+### Surfaces — use tonal layering, NOT borders:
+```tsx
+// CORRECT — card sits on surfaceLow, card itself is surfaceHighest
+<View style={{ backgroundColor: theme.colors.surfaceLow, padding: theme.spacing.md }}>
+  <View style={{
+    backgroundColor: theme.colors.surfaceHighest,
+    borderRadius: theme.borderRadius.sm, // 2px — architectural sharpness
+    ...theme.shadows.card,
+  }}>
+    {/* Card content */}
+  </View>
+</View>
+
+// WRONG — never use this pattern
+<View style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 16 }}>
+```
+
+### Gold accents — use sparingly:
+```tsx
+// Gold is for: primary CTAs, active tab indicator, TONIGHT badge, Verified tick, Save icon (filled)
+// NOT for: general text, card backgrounds, icons that don't represent action/status
+backgroundColor: theme.colors.primary // gold in dark mode, deep blue in light mode
+```
+
+### Ghost border (used for floating elements only):
+```tsx
+// Top-left-only ghost border — catches light like edge of a physical object
+borderTopWidth: 0.5,
+borderLeftWidth: 0.5,
+borderTopColor: theme.colors.outlineVariant,
+borderLeftColor: theme.colors.outlineVariant,
+```
+
+### Glassmorphic surfaces (tab bar, bottom sheets):
+```tsx
+// Use expo-linear-gradient
+import { LinearGradient } from 'expo-linear-gradient';
+
+<LinearGradient
+  colors={isDarkMode
+    ? ['rgba(53,53,52,0.85)', 'rgba(28,27,27,0.95)']
+    : ['rgba(255,255,255,0.9)', 'rgba(245,243,230,0.95)']
+  }
+  style={StyleSheet.absoluteFillObject}
+/>
+```
+
+---
+
+## ANALYTICS RULES [NEW v4]
+
+Every meaningful user action must fire a PostHog event via the analytics service wrapper.
+**CRITICAL: Every event MUST include `is_guest` and `guest_uuid` as required properties.**
+
+```typescript
+// src/services/analytics.ts
+import PostHog from 'PostHog-react-native';
+import { useAuthStore } from '@/store/useAuthStore';
+
+// Base properties included on EVERY event
+const getGuestProps = () => {
+  const { isGuest, guestUuid } = useAuthStore.getState();
+  return {
+    is_guest: isGuest,
+    guest_uuid: isGuest ? guestUuid : null,
+  };
+};
+
+export const Analytics = {
+  track: (event: string, properties: Record<string, unknown>): void => {
+    PostHog.track(event, { ...getGuestProps(), ...properties });
+  },
+
+  guestSessionStarted: (entryPoint: 'cold_launch' | 'deep_link' | 'onboarding'): void => {
+    Analytics.track('guest_session_started', {
+      device_platform: Platform.OS,
+      entry_point: entryPoint,
+    });
+  },
+
+  softGateTriggered: (
+    triggerAction: 'get_tickets' | 'save_venue' | 'report_issue',
+    venueId: string,
+    isGuest: boolean,
+    guestUuid: string | null
+  ): void => {
+    Analytics.track('soft_gate_triggered', {
+      trigger_action: triggerAction,
+      venue_id: venueId,
+    });
+  },
+
+  softGateDismissed: (
+    triggerAction: 'get_tickets' | 'save_venue' | 'report_issue',
+    dismissMethod: 'maybe_later' | 'backdrop_tap'
+  ): void => {
+    Analytics.track('soft_gate_dismissed', {
+      trigger_action: triggerAction,
+      dismiss_method: dismissMethod,
+    });
+  },
+
+  guestConverted: (authMethod: 'google' | 'phone_otp', guestUuid: string): void => {
+    Analytics.track('guest_converted', {
+      auth_method: authMethod,
+      guest_uuid: guestUuid, // last reference before it's cleared
+    });
+  },
+
+  onboardingCompleted: (authMethod: 'google' | 'phone_otp', interests: string[]): void => {
+    Analytics.track('onboarding_completed', {
+      auth_method: authMethod,
+      selected_interests: interests,
+      device_platform: Platform.OS,
+    });
+  },
+
+  venueViewed: (
+    venue: Venue,
+    sourceTab: 'Home' | 'Explore' | 'Map' | 'Search' | 'deep_link',
+    index: number
+  ): void => {
+    Analytics.track('venue_viewed', {
+      venue_id: venue.id,
+      venue_name: venue.name,
+      category: venue.category_id,
+      neighbourhood: venue.neighbourhood,
+      city: venue.city,
+      source_tab: sourceTab,
+      source_index: index,
+      has_tonight_badge: (venue.venue_updates ?? []).some(
+        (u) => new Date(u.expires_at) > new Date()
+      ),
+    });
+  },
+
+  purchaseIntentClicked: (venue: Venue, sessionDurationSec: number): void => {
+    Analytics.track('purchase_intent_clicked', {
+      venue_id: venue.id,
+      venue_name: venue.name,
+      price_displayed: venue.base_price,
+      currency: venue.currency,
+      session_duration_sec: sessionDurationSec,
+    });
+  },
+
+  venueSharedWhatsapp: (venue: Venue, sourceTab: string): void => {
+    Analytics.track('venue_shared_whatsapp', {
+      venue_id: venue.id,
+      venue_name: venue.name,
+      source_tab: sourceTab,
+    });
+  },
+
+  venueSaved: (venueId: string, action: 'saved' | 'unsaved'): void => {
+    Analytics.track('venue_saved', { venue_id: venueId, action });
+  },
+
+  searchPerformed: (query: string, resultsCount: number, timeMs: number): void => {
+    Analytics.track('search_performed', {
+      query,
+      results_count: resultsCount,
+      time_to_first_result_ms: timeMs,
+    });
+  },
+};
+```
+
+---
+
+## NAVIGATION RULES
+
+```typescript
+// src/constants/routes.ts
+export const ROUTES = {
+  // Auth Stack
+  SPLASH: 'SplashScreen',
+  ONBOARDING: 'OnboardingScreen',
+  AUTH: 'AuthScreen',
+  OTP_VERIFY: 'OtpVerifyScreen',
+  INTEREST_SELECT: 'InterestSelectScreen',
+  // Guest Tab Navigator [NEW v4]
+  GUEST_HOME: 'GuestHomeScreen',
+  // Main Tabs
+  HOME: 'HomeScreen',
+  EXPLORE: 'ExploreScreen',
+  MAP: 'MapScreen',
+  PROFILE: 'ProfileScreen',
+  SEARCH: 'SearchScreen',
+  // Nested
+  VENUE_DETAIL: 'VenueDetailScreen',
+  CATEGORY_LIST: 'CategoryListScreen',
+  TICKET_INTENT: 'TicketIntentModal',
+  SOFT_AUTH_GATE: 'SoftAuthGateModal',
+  EDIT_PROFILE: 'EditProfileScreen',
+  REPORT_ISSUE: 'ReportIssueModal',
+} as const;
+```
+
+- Route names live in `@/constants/routes.ts` — never hardcode string route names
+- Auth guard lives in `RootNavigator` only — no auth checks inside individual screens
+- Deep links must resolve for ALL navigator states (guest and authenticated)
+- `GuestTabNavigator` and `MainTabNavigator` must share the same linking config for VenueDetail and Explore
+
+---
+
+## ERROR HANDLING RULES
+
+```typescript
+// Sentry — always include context (and guest info)
+import * as Sentry from '@sentry/react-native';
+const { session, isGuest, guestUuid } = useAuthStore.getState();
+
+Sentry.captureException(error, {
+  extra: {
+    userId: session?.user?.id ?? null,
+    isGuest,
+    guestUuid: isGuest ? guestUuid : null,
+    screen: 'VenueDetailScreen',
+    venueId: venue?.id,
+  },
+});
+```
+
+- TanStack Query handles network retries (3x) automatically — do not add manual retry logic
+- Wrap the root NavigationContainer in a React Error Boundary
+- Never swallow errors silently — always log to Sentry
+
+---
+
+## PHASE 1 SCOPE GUARD
+
+If asked to build anything below, respond: "This is Phase 2/3 scope. Scaffold the file but leave implementation empty."
+- Payment flows (JazzCash, EasyPaisa)
+- QR code generation or scanning
+- Booking management
+- Venue owner self-listing portal
+- Push notifications (beyond placeholder screen)
+- Lahore / Islamabad city support
+- "Plan with Friends" shared itinerary
+
+---
+
+## WHEN REGENERATING EXISTING SCREENS
+
+The existing screens (HomeScreen, HeritageScreen, DineScreen, ArenaScreen, EscapesScreen, LoginScreen, OTPScreen, SignUpScreen, SplashScreen, PlaceDetailScreen) were built with a good design base but may not follow all cursorrules. When modifying or touching these screens:
+
+1. **Preserve the animation style and visual quality** — the floating tab bar, spring animations, and glassmorphic surfaces are correct and must be kept
+2. **Replace any hardcoded colors** with `useThemeStore().theme.colors.*`
+3. **Replace any StyleSheet.create with hardcoded hex** with theme tokens
+4. **Add `is_guest` check** to any action that should be soft-gated
+5. **Ensure both dark and light themes** render correctly — `useThemeStore` provides both
+6. **Replace NotoSerif/Manrope font references** from string literals to theme.typography tokens
+7. **Add proper TypeScript interfaces** — no implicit any
+8. **Add loading/error/empty states** if missing
+
+---
+
+## WHEN GENERATING CODE, ALWAYS:
+1. Add the file path as a comment on line 1: `// src/features/explore/hooks/useVenues.ts`
+2. Import from `@/` aliases, never relative paths like `../../`
+3. Export named exports, not default exports (except screens which use default)
+4. Add JSDoc comment on every exported function explaining what it does
+5. Handle loading, error, and empty states in every screen
+6. Fire the correct analytics event for every user-facing action, with `is_guest` and `guest_uuid` always included
+7. Check `isGuest` before any mutation that requires authentication — show `SoftAuthGateModal` instead
+8. Use `useThemeStore().theme` for all styling — never hardcode colors, sizes, or fonts
+9. Use NotoSerif for all headline/display typography and Manrope for body/UI text
+10. Use tonal elevation (surfaceHighest over surfaceLow) instead of borders for card containment

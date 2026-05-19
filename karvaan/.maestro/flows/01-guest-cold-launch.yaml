@@ -1,0 +1,182 @@
+# TICKET 044 — Guest Cold Launch E2E Tests
+# Tests: SplashScreen → Onboarding → GuestTabNavigator → PostHog events
+
+appId: com.frix.app
+name: Guest Cold Launch — First Time User
+
+---
+
+# TEST 1: Install fresh app → SplashScreen → OnboardingScreen (3 slides visible)
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+# Wait for SplashScreen to appear
+- assertVisible:
+    id: "splash-screen-logo"
+    timeout: 5000
+
+# Allow splash to complete (500ms animation)
+- waitForAnimationToEnd:
+    timeout: 1000
+
+# Verify OnboardingScreen appears (first-time user)
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+# TEST 2: Skip on slide 1 → lands on GuestTabNavigator (Explore tab active)
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+# Verify GuestTabNavigator loads with Explore tab active
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+# Verify Explore tab is active (should see venue list)
+- assertVisible:
+    id: "venue-list"
+    timeout: 5000
+
+# Verify Home tab is NOT active (GuestHomeScreen has different content)
+- assertNotVisible:
+    text: "Get a personalised feed."
+
+---
+appId: com.frix.app
+name: Guest Cold Launch — Onboarding Slides Navigation
+
+---
+
+# Reset app state
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+# Wait for OnboardingScreen
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+# Verify Slide 1 content
+- assertVisible:
+    text: "From Mughal-era forts to rooftop restaurants"
+
+# Swipe to Slide 2
+- swipe:
+    direction: LEFT
+    percent: 70
+
+- waitForAnimationToEnd:
+    timeout: 500
+
+# Verify Slide 2 content
+- assertVisible:
+    text: "Every venue, checked by our team."
+    timeout: 3000
+
+- assertVisible:
+    text: "We visit, verify, and write notes on every place"
+
+# Swipe to Slide 3
+- swipe:
+    direction: LEFT
+    percent: 70
+
+- waitForAnimationToEnd:
+    timeout: 500
+
+# Verify Slide 3 content and CTA
+- assertVisible:
+    text: "Your weekend, planned in 30 seconds."
+    timeout: 3000
+
+- assertVisible:
+    text: "Start Exploring"
+
+# Tap "Start Exploring" → GuestTabNavigator
+- tapOn:
+    text: "Start Exploring"
+    timeout: 3000
+
+# Verify GuestTabNavigator loads (Explore tab)
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+---
+appId: com.frix.app
+name: Guest Cold Launch — Returning Guest (No Onboarding)
+
+---
+
+# Simulate returning guest (hasSeenOnboarding = true, no session)
+# This test assumes previous test set the MMKV flag
+- launchApp:
+    appId: com.frix.app
+    clearState: false
+    clearKeychain: false
+
+# Should skip SplashScreen quickly and go directly to GuestTabNavigator
+- assertVisible:
+    id: "splash-screen-logo"
+    timeout: 3000
+
+# Wait for navigation to complete
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Should land directly on GuestTabNavigator (Explore tab)
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+# Verify onboarding is NOT shown
+- assertNotVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 2000
+
+---
+appId: com.frix.app
+name: Guest Cold Launch — UUID Persistence
+
+---
+
+# This test verifies guest_uuid is NOT regenerated on reopen
+# Note: PostHog Live View verification requires manual check in PostHog dashboard
+
+# First launch — generate UUID
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+# Wait for app to fully load
+- assertVisible:
+    id: "explore-screen"
+    timeout: 10000
+
+# Kill app completely
+- stopApp:
+    appId: com.frix.app
+
+# Reopen app (simulates kill + reopen)
+- launchApp:
+    appId: com.frix.app
+    clearState: false
+    clearKeychain: false
+
+# Should return to GuestTabNavigator (not onboarding, not auth)
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+# Verify same guest_uuid persists (check via console log or debug overlay)
+# Manual verification required in PostHog Live View:
+# - guest_session_started fired with is_guest: true
+# - guest_uuid present and consistent across sessions
+# - UUID NOT regenerated on second launch

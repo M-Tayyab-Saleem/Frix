@@ -1,0 +1,302 @@
+# TICKET 045 — Auth & Conversion E2E Tests
+# Tests: Phone OTP Sign-In flow from SoftAuthGateModal
+
+appId: com.frix.app
+name: Phone OTP — Valid Number & Correct OTP
+
+---
+
+# Start as guest and trigger soft gate
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+# Wait for onboarding
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+# Skip onboarding
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+# Verify GuestTabNavigator loads
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+# Navigate to venue detail
+- tapOn:
+    id: "venue-card"
+    index: 0
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+# Tap "Get Tickets" → SoftAuthGateModal
+- tapOn:
+    id: "get-tickets-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 5000
+
+# Tap "Use Phone Number" → AuthScreen with phone tab
+- tapOn:
+    text: "Use Phone Number"
+    timeout: 3000
+
+# Verify AuthScreen appears with phone input
+- assertVisible:
+    id: "auth-screen"
+    timeout: 5000
+
+- assertVisible:
+    id: "phone-input"
+    timeout: 3000
+
+# Verify Pakistani country code is pre-filled
+- assertVisible:
+    text: "+92"
+    timeout: 3000
+
+# Enter valid Pakistani number (e.g., 3001234567)
+- tapOn:
+    id: "phone-input"
+    timeout: 3000
+
+- inputText: "3001234567"
+
+# Tap "Send OTP"
+- tapOn:
+    id: "send-otp-button"
+    timeout: 3000
+
+# Verify OTP screen appears within reasonable time
+- assertVisible:
+    id: "otp-verify-screen"
+    timeout: 5000
+
+# Verify 6-digit input boxes are shown
+- assertVisible:
+    id: "otp-input-box-1"
+    timeout: 3000
+
+- assertVisible:
+    id: "otp-input-box-6"
+    timeout: 3000
+
+# Enter correct 6-digit OTP (simulated - in real test, use actual OTP received)
+# Note: In actual E2E test, you'd extract OTP from SMS or use test phone number
+- tapOn:
+    id: "otp-input-box-1"
+    timeout: 3000
+
+- inputText: "123456"
+
+# Wait for auto-submit (should happen on 6th digit)
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Verify InterestSelectScreen appears (no interests set)
+- assertVisible:
+    text: "What are you into?"
+    timeout: 10000
+
+# Select interests
+- tapOn:
+    text: "Dine"
+    timeout: 3000
+
+- tapOn:
+    id: "continue-button"
+    timeout: 3000
+
+# Verify MainTabNavigator loads
+- assertVisible:
+    id: "home-screen"
+    timeout: 10000
+
+---
+appId: com.frix.app
+name: Phone OTP — Incorrect OTP Shows Error
+
+---
+
+# Start as guest and navigate to OTP screen
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "venue-card"
+    index: 0
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "get-tickets-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 5000
+
+- tapOn:
+    text: "Use Phone Number"
+    timeout: 3000
+
+- assertVisible:
+    id: "phone-input"
+    timeout: 3000
+
+- tapOn:
+    id: "phone-input"
+    timeout: 3000
+
+- inputText: "3001234567"
+
+- tapOn:
+    id: "send-otp-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "otp-verify-screen"
+    timeout: 5000
+
+# Enter wrong 6-digit OTP
+- tapOn:
+    id: "otp-input-box-1"
+    timeout: 3000
+
+- inputText: "000000"
+
+# Wait for submission attempt
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Verify shake animation on input boxes
+# Note: Maestro cannot directly test animations, but we can verify error state
+- assertVisible:
+    text: "Incorrect code"
+    timeout: 5000
+
+# Verify OTP boxes still visible (not navigated away)
+- assertVisible:
+    id: "otp-input-box-1"
+    timeout: 3000
+
+---
+appId: com.frix.app
+name: Phone OTP — Resend OTP After 60 Seconds
+
+---
+
+# Start as guest and navigate to OTP screen
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "venue-card"
+    index: 0
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "get-tickets-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 5000
+
+- tapOn:
+    text: "Use Phone Number"
+    timeout: 3000
+
+- assertVisible:
+    id: "phone-input"
+    timeout: 3000
+
+- tapOn:
+    id: "phone-input"
+    timeout: 3000
+
+- inputText: "3001234567"
+
+- tapOn:
+    id: "send-otp-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "otp-verify-screen"
+    timeout: 5000
+
+# Verify countdown timer is shown
+- assertVisible:
+    id: "resend-timer"
+    timeout: 3000
+
+# Wait for timer to count down (60 seconds)
+# For testing, we can fast-forward time or use a shorter test timer
+# In production: wait 60 seconds
+- waitForAnimationToEnd:
+    timeout: 60000
+
+# Verify "Resend" button becomes active
+- assertVisible:
+    id: "resend-button"
+    timeout: 5000
+
+# Tap Resend
+- tapOn:
+    id: "resend-button"
+    timeout: 3000
+
+# Verify new OTP is sent (timer resets)
+- assertVisible:
+    id: "resend-timer"
+    timeout: 5000
+
+# Timer should be counting down again (new OTP received)
+- assertNotVisible:
+    id: "resend-button"
+    timeout: 3000

@@ -1,0 +1,24 @@
+# Maestro E2E Test Configuration
+# https://maestro.mobile.dev/
+
+# Flows directory containing all test files
+flows:
+  - flows/**/*.yaml
+
+# Execution settings
+executionOrder:
+    # Run tests in alphabetical order
+    # Guest Cold Launch → Guest Browsing → Guest Soft Gate → Guest Deep Link
+    order: alphabetical
+
+# Timeout for each flow (in milliseconds)
+flowTimeout: 300000
+
+# Default configuration for all flows
+defaults:
+    # Wait for animations to complete
+    waitForAnimationToEnd: true
+    # Timeout for individual assertions
+    assertionTimeout: 10000
+    # Tap timeout
+    tapTimeout: 5000

@@ -1,0 +1,200 @@
+# TICKET 045 — Auth & Conversion E2E Tests
+# Tests: Returning Authenticated User flows
+
+appId: com.frix.app
+name: Returning User — Direct to MainTabNavigator
+
+---
+
+# Simulate returning authenticated user (session exists in Supabase)
+# This assumes user has already completed onboarding and interest selection
+
+# Launch app with existing session
+- launchApp:
+    appId: com.frix.app
+    clearState: false
+    clearKeychain: false
+
+# Should show splash briefly
+- assertVisible:
+    id: "splash-screen-logo"
+    timeout: 3000
+
+# Wait for session check and navigation
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Should land directly on MainTabNavigator (HomeScreen)
+- assertVisible:
+    id: "home-screen"
+    timeout: 10000
+
+# Verify onboarding is NOT shown
+- assertNotVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+# Verify auth screens are NOT shown
+- assertNotVisible:
+    id: "auth-screen"
+    timeout: 3000
+
+# Verify GuestHomeScreen is NOT shown
+- assertNotVisible:
+    text: "Get a personalised feed."
+    timeout: 3000
+
+# Verify Home tab is active
+- assertVisible:
+    text: "Discover Karachi"
+    timeout: 5000
+
+# Verify other tabs are accessible
+# Tap Explore tab
+- tapOn:
+    id: "explore-tab"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+# Tap Map tab
+- tapOn:
+    id: "map-tab"
+    timeout: 3000
+
+- assertVisible:
+    id: "map-screen"
+    timeout: 5000
+
+# Tap Profile tab
+- tapOn:
+    id: "profile-tab"
+    timeout: 3000
+
+- assertVisible:
+    id: "profile-screen"
+    timeout: 5000
+
+---
+appId: com.frix.app
+name: Session Expired — Shows GuestTabNavigator + Banner
+
+---
+
+# Simulate session expiration (manually revoke in Supabase or clear session)
+# This test requires pre-setup: revoke user's session in Supabase before running
+
+# Launch app with expired session
+- launchApp:
+    appId: com.frix.app
+    clearState: false
+    clearKeychain: false
+
+# Wait for splash and session check
+- assertVisible:
+    id: "splash-screen-logo"
+    timeout: 3000
+
+# Wait for failed session refresh
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Should show GuestTabNavigator (not MainTabNavigator)
+- assertVisible:
+    id: "guest-home-screen"
+    timeout: 10000
+
+# Verify session expired banner is shown
+- assertVisible:
+    text: "Your session has expired"
+    timeout: 5000
+
+- assertVisible:
+    text: "Sign in to continue"
+    timeout: 3000
+
+# Verify "Sign In Again" CTA is visible
+- assertVisible:
+    id: "sign-in-again-button"
+    timeout: 3000
+
+# Tap "Sign In Again" → AuthScreen
+- tapOn:
+    id: "sign-in-again-button"
+    timeout: 3000
+
+# Verify AuthScreen appears
+- assertVisible:
+    id: "auth-screen"
+    timeout: 5000
+
+# Verify phone input is shown
+- assertVisible:
+    id: "phone-input"
+    timeout: 3000
+
+# Verify Google sign-in is available
+- assertVisible:
+    text: "Continue with Google"
+    timeout: 3000
+
+---
+appId: com.frix.app
+name: Re-authenticate After Session Expiry
+
+---
+
+# Continue from session expired state, re-authenticate
+
+# Start with session expired, on AuthScreen
+- launchApp:
+    appId: com.frix.app
+    clearState: false
+    clearKeychain: false
+
+# Wait for session expired state
+- assertVisible:
+    id: "guest-home-screen"
+    timeout: 10000
+
+- tapOn:
+    id: "sign-in-again-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "auth-screen"
+    timeout: 5000
+
+# Re-authenticate with Google
+- tapOn:
+    text: "Continue with Google"
+    timeout: 3000
+
+# Simulate successful Google OAuth
+- tapOn:
+    id: "google-signin-button"
+    timeout: 3000
+
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Verify MainTabNavigator loads (user already has interests)
+- assertVisible:
+    id: "home-screen"
+    timeout: 10000
+
+# Verify session is active again
+- assertVisible:
+    text: "Discover Karachi"
+    timeout: 5000
+
+# Verify Profile tab is accessible (authenticated feature)
+- tapOn:
+    id: "profile-tab"
+    timeout: 3000
+
+- assertVisible:
+    id: "profile-screen"
+    timeout: 5000

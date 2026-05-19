@@ -1,0 +1,104 @@
+{
+  "expo": {
+    "name": "frix-app",
+    "slug": "frix-app",
+    "version": "1.0.0",
+    "scheme": "frix",
+    "orientation": "portrait",
+    "icon": "./assets/frix_logo.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/frix_logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#131313"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.frix.app",
+      "associatedDomains": [
+        "applinks:frix.pk"
+      ],
+      "config": {
+        "googleMapsApiKey": "AIzaSyBZjFJbg5BsOmeWAgD-1jQ6_AoPe3jg2u0"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/frix_logo.png",
+        "backgroundColor": "#131313"
+      },
+      "package": "com.frix.app",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBZjFJbg5BsOmeWAgD-1jQ6_AoPe3jg2u0"
+        }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "frix.pk",
+              "pathPrefix": "/venue"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "frix",
+              "host": "venue",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./assets/frix_logo.png"
+    },
+    "plugins": [
+      [
+        "@sentry/react-native",
+        {
+          "organization": "tayyabs-solutions",
+          "project": "react-native"
+        }
+      ],
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysPermission": "Allow Frix to use your location."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "shrinkResources": true
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c430f6d8-3e11-4454-a7d4-c72672e3f45a"
+      }
+    }
+  }
+}

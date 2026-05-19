@@ -1,0 +1,182 @@
+# TICKET 044 — Guest Deep Link Resolution E2E Tests
+# Tests: frix://venue/:id deep links for guests
+
+appId: com.frix.app
+name: Guest Deep Link — Android (App Already Open)
+
+---
+
+# Start as guest
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+# Simulate deep link opening (app already running)
+# Note: In real testing, use: adb shell am start -W -a android.intent.action.VIEW -d 'frix://venue/TEST_VENUE_ID'
+- openLink:
+    link: frix://venue/test_venue_001
+
+# Wait for navigation
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Verify VenueDetailScreen opens (NOT AuthScreen)
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+# Verify NOT on AuthScreen
+- assertNotVisible:
+    text: "Continue with Google"
+    timeout: 3000
+
+- assertNotVisible:
+    text: "Sign in to continue"
+    timeout: 3000
+
+# Verify venue content is visible
+- assertVisible:
+    id: "venue-name"
+    timeout: 3000
+
+---
+appId: com.frix.app
+name: Guest Deep Link — iOS (Notes App)
+
+---
+
+# iOS deep link test (manual verification required)
+# Steps for manual testing:
+# 1. Open Notes app on iPhone
+# 2. Type: frix://venue/test_venue_001
+# 3. Tap the link
+# 4. Verify: VenueDetailScreen opens (NOT AuthScreen)
+# 5. Verify: Full venue content visible
+# 6. Verify: No auth redirect
+
+# Automated test simulation:
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+# Open deep link
+- openLink:
+    link: frix://venue/test_venue_001
+
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Verify VenueDetailScreen
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-name"
+    timeout: 3000
+
+---
+appId: com.frix.app
+name: Guest Deep Link — Cold Start (App Not Running)
+
+---
+
+# Kill app completely
+- stopApp:
+    appId: com.frix.app
+
+# Open via deep link (simulates cold start with deep link)
+# Note: In real testing, kill app first, then open link from Notes/WhatsApp
+# For Maestro, we simulate by launching app and then opening link
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+# SplashScreen should appear first
+- assertVisible:
+    id: "splash-screen-logo"
+    timeout: 3000
+
+# Wait for splash to complete
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Now simulate deep link firing after app initializes
+- openLink:
+    link: frix://venue/test_venue_001
+
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Verify VenueDetailScreen opens (no auth redirect)
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+# Verify NOT redirected to AuthScreen
+- assertNotVisible:
+    id: "auth-screen"
+    timeout: 3000
+
+- assertNotVisible:
+    text: "Sign in"
+    timeout: 3000
+
+---
+appId: com.frix.app
+name: Guest Deep Link — Explore Link
+
+---
+
+# Test frix://explore deep link
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+# Open explore deep link
+- openLink:
+    link: frix://explore
+
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Verify ExploreScreen loads
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-list"
+    timeout: 5000

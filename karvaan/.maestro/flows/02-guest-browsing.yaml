@@ -1,0 +1,371 @@
+# TICKET 044 — Guest Browsing E2E Tests
+# Tests: Explore, Map, Search, Home tabs, VenueDetailScreen
+
+appId: com.frix.app
+name: Guest Browsing — Explore Tab
+
+---
+
+# Start fresh as guest
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+# Wait for onboarding, then skip
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+# Verify Explore tab loads
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+# Verify venue list loads WITHOUT sign-in prompt
+- assertVisible:
+    id: "venue-list"
+    timeout: 10000
+
+# Verify NO auth modal or sign-in prompt appears
+- assertNotVisible:
+    text: "Sign in to continue"
+    timeout: 2000
+
+- assertNotVisible:
+    text: "Create an account"
+    timeout: 2000
+
+# Verify category filter chips are visible
+- assertVisible:
+    id: "category-filter-chips"
+    timeout: 3000
+
+# Verify VenueCards are rendered
+- assertVisible:
+    id: "venue-card"
+    timeout: 3000
+
+---
+appId: com.frix.app
+name: Guest Browsing — Map Tab
+
+---
+
+# Start as guest (assume already past onboarding)
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+# Skip onboarding
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+# Tap Map tab
+- tapOn:
+    id: "tab-map"
+    timeout: 3000
+
+# Verify Map tab renders
+- assertVisible:
+    id: "map-screen"
+    timeout: 5000
+
+# Verify map pins are visible (no sign-in prompt)
+- assertVisible:
+    id: "map-pin"
+    timeout: 10000
+
+# Verify NO sign-in prompt
+- assertNotVisible:
+    text: "Sign in"
+    timeout: 2000
+
+---
+appId: com.frix.app
+name: Guest Browsing — Search Tab
+
+---
+
+# Start as guest
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+# Skip onboarding
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+# Tap Search tab
+- tapOn:
+    id: "tab-search"
+    timeout: 3000
+
+# Verify Search tab loads
+- assertVisible:
+    id: "search-screen"
+    timeout: 5000
+
+# Verify search input is focused
+- assertVisible:
+    id: "search-input"
+    timeout: 3000
+
+# Type a search query
+- tapOn:
+    id: "search-input"
+    timeout: 3000
+
+- inputText: "Clifton"
+
+# Wait for search results
+- waitForAnimationToEnd:
+    timeout: 1000
+
+# Verify search results appear
+- assertVisible:
+    id: "search-results"
+    timeout: 10000
+
+---
+appId: com.frix.app
+name: Guest Browsing — Home Tab (GuestHomeScreen)
+
+---
+
+# Start as guest
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+# Skip onboarding
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+# Tap Home tab
+- tapOn:
+    id: "tab-home"
+    timeout: 3000
+
+# Verify GuestHomeScreen renders (NOT blank, NOT crash)
+- assertVisible:
+    id: "guest-home-screen"
+    timeout: 5000
+
+# Verify content is visible
+- assertVisible:
+    text: "Get a personalised feed."
+    timeout: 3000
+
+- assertVisible:
+    text: "Sign in so Frix can recommend venues"
+    timeout: 3000
+
+# Verify Sign In button exists
+- assertVisible:
+    text: "Sign In"
+    timeout: 3000
+
+# Verify "Browse without signing in" link exists
+- assertVisible:
+    text: "Browse without signing in"
+    timeout: 3000
+
+---
+appId: com.frix.app
+name: Guest Browsing — Venue Detail Screen
+
+---
+
+# Start as guest
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+# Skip onboarding
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+# Tap first venue card
+- tapOn:
+    id: "venue-card"
+    index: 0
+    timeout: 5000
+
+# Verify VenueDetailScreen opens
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+# Verify ALL content is visible (images, Frix Notes, hours, map)
+- assertVisible:
+    id: "venue-hero-image"
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-name"
+    timeout: 3000
+
+- assertVisible:
+    id: "frix-notes"
+    timeout: 3000
+
+- assertVisible:
+    id: "operating-hours"
+    timeout: 3000
+
+- assertVisible:
+    id: "venue-map"
+    timeout: 3000
+
+---
+appId: com.frix.app
+name: Guest Browsing — Share Venue (WhatsApp)
+
+---
+
+# Start as guest and navigate to venue detail
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "venue-card"
+    index: 0
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+# Tap Share button
+- tapOn:
+    id: "share-button"
+    timeout: 3000
+
+# Verify WhatsApp sheet appears (no gate)
+- assertVisible:
+    id: "whatsapp-share-sheet"
+    timeout: 5000
+
+# Go back to venue detail
+- back
+
+---
+appId: com.frix.app
+name: Guest Browsing — Scroll Venue Detail (No Forced Sign-In)
+
+---
+
+# Start as guest and navigate to venue detail
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "venue-card"
+    index: 0
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+# Scroll through ALL content without forced sign-in
+- swipe:
+    direction: UP
+    percent: 30
+
+- waitForAnimationToEnd:
+    timeout: 500
+
+# Verify still on venue detail (no redirect)
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 3000
+
+- swipe:
+    direction: UP
+    percent: 30
+
+- waitForAnimationToEnd:
+    timeout: 500
+
+# Verify still on venue detail (no forced sign-in modal)
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 3000
+
+- assertNotVisible:
+    text: "Create an account to continue"
+    timeout: 2000

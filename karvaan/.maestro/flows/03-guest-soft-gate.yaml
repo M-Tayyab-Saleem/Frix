@@ -1,0 +1,376 @@
+# TICKET 044 — Guest Soft Gate E2E Tests
+# Tests: SoftAuthGateModal trigger/dismiss flows
+
+appId: com.frix.app
+name: Guest Soft Gate — Get Tickets
+
+---
+
+# Start as guest and navigate to venue detail
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "venue-card"
+    index: 0
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+# Tap "Get Tickets" → SoftAuthGateModal appears
+- tapOn:
+    id: "get-tickets-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 5000
+
+# Verify modal content
+- assertVisible:
+    text: "Your next Karachi adventure awaits."
+    timeout: 3000
+
+- assertVisible:
+    text: "Create a free account to save venues and book tickets"
+    timeout: 3000
+
+- assertVisible:
+    text: "Continue with Google"
+    timeout: 3000
+
+- assertVisible:
+    text: "Use Phone Number"
+    timeout: 3000
+
+- assertVisible:
+    text: "Maybe later"
+    timeout: 3000
+
+---
+appId: com.frix.app
+name: Guest Soft Gate — Dismiss with Maybe Later
+
+---
+
+# Start as guest and trigger soft gate
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "venue-card"
+    index: 0
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "get-tickets-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 5000
+
+# Tap "Maybe later" → modal closes, user still on VenueDetailScreen
+- tapOn:
+    text: "Maybe later"
+    timeout: 3000
+
+- waitForAnimationToEnd:
+    timeout: 500
+
+# Verify modal dismissed
+- assertNotVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 3000
+
+# Verify still on VenueDetailScreen
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 3000
+
+---
+appId: com.frix.app
+name: Guest Soft Gate — Bookmark Icon
+
+---
+
+# Start as guest and navigate to venue detail
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "venue-card"
+    index: 0
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+# Tap bookmark icon → SoftAuthGateModal appears
+- tapOn:
+    id: "bookmark-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 5000
+
+---
+appId: com.frix.app
+name: Guest Soft Gate — Bookmark Dismiss, Icon Stays Outline
+
+---
+
+# Start as guest and trigger soft gate via bookmark
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "venue-card"
+    index: 0
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "bookmark-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 5000
+
+# Dismiss modal
+- tapOn:
+    text: "Maybe later"
+    timeout: 3000
+
+- waitForAnimationToEnd:
+    timeout: 500
+
+# Verify bookmark stays outline (not filled)
+- assertVisible:
+    id: "bookmark-button-outline"
+    timeout: 3000
+
+---
+appId: com.frix.app
+name: Guest Soft Gate — Dismiss with Backdrop Tap
+
+---
+
+# Start as guest and trigger soft gate
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "venue-card"
+    index: 0
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "get-tickets-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 5000
+
+# Tap backdrop (outside modal) → modal closes
+- tapOn:
+    point: 50%,25%
+    timeout: 3000
+
+- waitForAnimationToEnd:
+    timeout: 500
+
+# Verify modal dismissed
+- assertNotVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 3000
+
+# Verify still on VenueDetailScreen
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 3000
+
+---
+appId: com.frix.app
+name: Guest Soft Gate — Trigger 3 Times (No Rate Limiting)
+
+---
+
+# Start as guest
+- launchApp:
+    appId: com.frix.app
+    clearState: true
+    clearKeychain: true
+
+- assertVisible:
+    text: "Karachi has more to offer than you know."
+    timeout: 5000
+
+- tapOn:
+    text: "Skip"
+    timeout: 3000
+
+- assertVisible:
+    id: "explore-screen"
+    timeout: 5000
+
+- tapOn:
+    id: "venue-card"
+    index: 0
+    timeout: 5000
+
+- assertVisible:
+    id: "venue-detail-screen"
+    timeout: 5000
+
+# First trigger: Get Tickets
+- tapOn:
+    id: "get-tickets-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 5000
+
+- tapOn:
+    text: "Maybe later"
+    timeout: 3000
+
+- waitForAnimationToEnd:
+    timeout: 500
+
+- assertNotVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 3000
+
+# Second trigger: Bookmark
+- tapOn:
+    id: "bookmark-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 5000
+
+- tapOn:
+    text: "Maybe later"
+    timeout: 3000
+
+- waitForAnimationToEnd:
+    timeout: 500
+
+- assertNotVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 3000
+
+# Third trigger: Get Tickets again
+- tapOn:
+    id: "get-tickets-button"
+    timeout: 3000
+
+- assertVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 5000
+
+- tapOn:
+    text: "Maybe later"
+    timeout: 3000
+
+- waitForAnimationToEnd:
+    timeout: 500
+
+# Verify modal still appears (no rate limiting)
+- assertNotVisible:
+    id: "soft-auth-gate-modal"
+    timeout: 3000
+
+# Note: PostHog verification requires manual check:
+# - soft_gate_triggered × 3
+# - soft_gate_dismissed × 3
