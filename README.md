@@ -1,193 +1,327 @@
-# Frix — AI Service Orchestrator for Pakistan's Informal Economy
-## Google Antigravity #AISeekho2026 Hackathon | Challenge 2 Submission
+# Frix — AI Service Orchestrator for the Informal Economy
 
-**Frix** is a state-of-the-art Agentic AI system designed to digitize and automate the end-to-end service booking lifecycle for Pakistan's informal economy (plumbers, electricians, AC technicians, house cleaners). Operating over WhatsApp, phone calls, and word-of-mouth, the informal sector suffers from inefficient matching, lack of transparency, and zero automation. 
-
-Frix solves this by building a highly autonomous, traceable multi-agent service orchestrator powered by **Google Antigravity** as the central reasoning platform. Users can type or speak requests in **Urdu, Roman Urdu, or English** (e.g. *"Mujhe kal subah Clifton Block 5 mein AC technician chahiye"*), and watch a coordinated group of specialized AI agents parse, discover, rank, book, and schedule automated follow-ups for their appointment with full decision transparency.
+> **Google Antigravity Hackathon · Challenge 2**
+>
+> An agentic AI system that automates the end-to-end lifecycle of informal-economy service requests — from multilingual user intent to booking and follow-up — powered by a 5-agent reasoning pipeline and a React Native mobile app.
 
 ---
 
-## 🏗️ System Architecture
+## Table of Contents
+
+- [Project Overview](#project-overview)
+- [How Antigravity Is Used](#how-antigravity-is-used)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Core Features](#core-features)
+- [API Contract](#api-contract)
+- [Frontend — Karvaan Mobile App](#frontend--karvaan-mobile-app)
+- [Mock Data Coverage](#mock-data-coverage)
+- [Agent Trace & Logs](#agent-trace--logs)
+- [Evaluation Criteria Mapping](#evaluation-criteria-mapping)
+- [Assumptions & Limitations](#assumptions--limitations)
+- [Team](#team)
+
+---
+
+## Project Overview
+
+**Frix** tackles the inefficiencies of Pakistan's informal service economy — plumbers, electricians, AC technicians, tutors, beauticians, and more — where service discovery still happens through WhatsApp messages, phone calls, and word-of-mouth referrals.
+
+The system accepts a **natural-language request** in English, Urdu (Arabic script), or Roman Urdu, and autonomously:
+
+1. **Parses intent** — extracts service type, location, and time window.
+2. **Discovers providers** — searches a mock provider database of Karachi-area tradespeople.
+3. **Ranks candidates** — scores by distance (40%), rating (30%), and availability match (30%).
+4. **Books the top provider** — generates a deterministic confirmation.
+5. **Schedules a follow-up reminder** — 1 hour before the appointment via simulated SMS.
+
+All five steps are executed by **separate AI agents** in a traceable pipeline, producing structured logs that demonstrate multi-agent reasoning.
+
+---
+
+## How Antigravity Is Used
+
+**Google Antigravity serves as the core development IDE** for building, iterating, and debugging this entire project. The agentic backend was designed, coded, tested, and refined within the Antigravity environment, leveraging its AI-assisted development capabilities to:
+
+- Architect the multi-agent pipeline and define agent instructions.
+- Implement the FastAPI service, Pydantic schemas, and function tools.
+- Debug and iterate on the React Native mobile frontend.
+- Generate documentation and artifact files.
+
+The agent runtime itself uses the **OpenAI Agents SDK** (`openai-agents`) for the actual LLM-powered reasoning, which runs via an OpenAI-compatible API (configurable to use Gemini models via `OPENAI_BASE_URL`).
+
+---
+
+## Architecture
 
 ```
-                 User (Mobile App — React Native / Expo)
-                                    │
-                                    │  POST /orchestrate (natural language + location)
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                        FastAPI Backend (Python)                        │
-│                                                                        │
-│   ┌──────────────────────────────────────────────────────────────┐     │
-│   │                     Orchestration Layer                      │     │
-│   │             (Google Antigravity — Gemini Model)              │     │
-│   └──────────────────────────────┬───────────────────────────────┘     │
-│                                  │ typed sequential handoffs           │
-│         ┌────────────────────────┼────────────────────────┐            │
-│         ▼                        ▼                        ▼            │
-│   IntentParser             ProviderFinder               Ranker         │
-│   (Parses prompt)        (Calls find_providers)     (Multi-factor score)│
-│         │                                                 │            │
-│         ▼                                                 ▼            │
-│   Booking Agent                                    FollowUp Agent      │
-│  (simulate_booking)                              (schedule_reminder)   │
-│                                                                        │
-│  📁 Karachi Area Mock Directory (GPS Centroids)                        │
-│  📝 JSONL Autonomous Reasoning Spans & Trace Logs                      │
-└────────────────────────────────────────────────────────────────────────┘
+                                   ┌─────────────────────┐
+                                   │  Karvaan Mobile App  │
+                                   │  (React Native/Expo) │
+                                   └──────────┬──────────┘
+                                              │ POST /orchestrate
+                                              ▼
+                                   ┌─────────────────────┐
+                                   │   FastAPI Backend    │
+                                   │   (app/api.py)       │
+                                   └──────────┬──────────┘
+                                              │
+                                              ▼
+                              ┌──────────────────────────────┐
+                              │      runtime.py              │
+                              │  Deterministic Agent Chain    │
+                              │  (wrapped in SDK trace())    │
+                              └──────────────┬───────────────┘
+                                             │
+              ┌──────────────┬───────────────┼───────────────┬──────────────┐
+              ▼              ▼               ▼               ▼              ▼
+       IntentParser    ProviderFinder     Ranker          Booking       FollowUp
+       Agent           Agent             Agent           Agent         Agent
+       ─────────       ──────────        ──────          ──────        ────────
+       Multilingual    find_providers    Pure scoring    simulate_     schedule_
+       extraction      tool (mock DB)   (no tools)      booking       reminder
+       → ServiceIntent → Candidates     → Top 3        → Confirm ID  → Reminder
 ```
 
----
-
-## ⚡ How Google Antigravity is Utilized
-
-**Google Antigravity** serves as the central engine for system logic and agent coordination:
-
-1. **Deterministic Agent Chaining**: Built using the official Google Antigravity agent runtime (`openai-agents` wrapper SDK). Rather than a single black-box agent, the orchestrator chains five specialized, single-responsibility agents.
-2. **Traceable Decision Trees**: The entire pipeline runs inside a single `trace(...)` block. Every prompt generates nested spans representing agent reasoning (Intent confidence, Provider scoring breakdown, Slot selection logic). These traces are exported to JSONL on the backend and visualized live in the mobile UI.
-3. **Structured Typed Contracts**: Each specialist agent outputs a strict Pydantic model (`ServiceIntent` -> `ProviderCandidates` -> `RankedProviders` -> `BookingResult` -> `ReminderResult`), eliminating parsing fragility.
-4. **Autonomous Tool Execution**: Antigravity orchestrates tools like `find_providers()`, `simulate_booking()`, and `schedule_reminder()`, bridging language reasoning with transactional execution.
+**Pattern:** Deterministic agent chain with `Runner.run()` per step, wrapped in a single `trace()` block. Each agent has its own `output_type` (Pydantic model), enabling typed data flow between stages without free-text parsing.
 
 ---
 
-## 🤖 Specialist Agents
+## Tech Stack
 
-| Agent | Responsibility | Output Model | Tool / Action |
-| :--- | :--- | :--- | :--- |
-| **IntentParser** | Identifies trade category, resolves Karachi area, and extracts time window from multilingual prompt. | `ServiceIntent` | None (Direct Prompt Reasoning) |
-| **ProviderFinder** | Uses coordinate-based queries to locate candidates matching the category and neighborhood. | `ProviderCandidates` | `find_providers()` |
-| **Ranker** | Computes a multi-factor score (Proximity, Quality, Availability) and picks the best recommendation. | `RankedProviders` | None (Lead Board Sorting) |
-| **Booking** | Matches slot availability with user constraints and secures a simulated reservation. | `BookingResult` | `simulate_booking()` |
-| **FollowUp** | Automates post-booking engagement, scheduling timely notifications and SMS alerts. | `ReminderResult` | `schedule_reminder()` |
+### Backend (`backend/`)
 
----
+| Technology | Version | Purpose |
+|---|---|---|
+| **Python** | ≥ 3.12 | Runtime |
+| **FastAPI** | ≥ 0.115 | HTTP API framework |
+| **OpenAI Agents SDK** (`openai-agents`) | ≥ 0.2.9 | Multi-agent orchestration, tracing, `@function_tool` |
+| **Pydantic** | ≥ 2.9 | Structured data models (`output_type` for agents) |
+| **python-dotenv** | ≥ 1.0.1 | Environment variable loading |
+| **uv** | — | Package manager & virtual environment |
+| **Uvicorn** | (via FastAPI standard) | ASGI server |
 
-## 🎯 Matching & Ranking Logic
+### Frontend — Karvaan (`karvaan/`)
 
-The **Ranker Specialist Agent** scores candidates on a `[0.0, 1.0]` scale based on three explicit weights to guarantee transparency:
-* **Proximity & Distance (40%)**: Calculated using the distance from the target coordinates. Sectors $\le 2\text{ km}$ get $1.0$, while $\ge 10\text{ km}$ scale down linearly to $0.0$.
-* **Customer Rating & Quality (30%)**: Scaled linearly ($5.0\text{ stars} \rightarrow 1.0$, $3.0\text{ stars} \rightarrow 0.0$).
-* **Availability & Scheduling (30%)**: Full credit for exact matches with the requested time window (e.g. "tomorrow morning"), partial credit for same-day slots, and low credit for later dates.
+| Technology | Version | Purpose |
+|---|---|---|
+| **React Native** | 0.76.9 | Cross-platform mobile framework |
+| **Expo** | ~52.0.0 | Managed workflow, build tooling |
+| **TypeScript** | ≥ 5.3 | Type safety |
+| **React Navigation** | 7.x | Stack + tab navigation |
+| **TanStack React Query** | ≥ 5.62 | Server state, caching, offline persistence |
+| **Zustand** | ≥ 5.0 | Client state management |
+| **NativeWind / TailwindCSS** | 4.x / 3.4 | Utility-first styling |
+| **React Native Reanimated** | ~3.16 | Animations |
+| **React Native Maps** | ≥ 1.18 | Provider map view |
+| **Expo Location** | ~18.0 | GPS coordinates |
+| **MMKV** | ≥ 3.1 | High-performance local storage |
+| **Sentry** | ~6.10 | Error monitoring |
+| **@gorhom/bottom-sheet** | ≥ 5.1 | Bottom sheet UI |
+| **@shopify/flash-list** | 1.7.3 | High-performance lists |
 
-**Example Reasoning:** *"Karachi Air Solutions selected because they are just 1.2km away (Clifton Block 5) with a high 4.8 star rating and have a slot available tomorrow morning matching your window."*
+### LLM Models (configurable via env)
 
----
-
-## 🗣️ Multilingual Support (Urdu / Roman Urdu / English)
-
-Designed specifically for Pakistan's market, Frix parses:
-* **English**: *"I need a certified plumber in Clifton to fix a leaking tap ASAP."*
-* **Roman Urdu**: *"Kal subah electrician chahiye DHA Phase 6 mein room light change karne ke liye."*
-* **Urdu (Arabic Script)**: *"مجھے گلشن-ع-اقبال میں اے سی ٹیکنیشن چاہیے"*
-
-The **IntentParser** automatically detects the language, resolves the target service (e.g., *"AC repair"* $\rightarrow$ `ac_technician`), maps the closest Karachi area centroid, and processes notes.
-
----
-
-## 📲 Premium Mobile App Screens
-
-Frix features a premium dark-mode, glassmorphic UI built in Expo React Native & Web:
-* **RequestScreen**: Voice and text entry fields, language indicators, Karachi neighborhood quick selectors, and an interactive Location Map Picker.
-* **AgentThinkingScreen**: Live-action node visualization displaying the step-by-step consensus of the 5 Antigravity agents running on the backend.
-* **ResultsScreen**: Provider matching cards featuring animated score bars and clear selection reasoning.
-* **BookingConfirmScreen**: Visualized step-by-step transactional booking receipt with animated execution logs.
-* **BookingDetailScreen**: Live tracking of the service status, time slots, and provider contact.
-* **DisputeScreen**: Interactive reporting tool with a simulated AI-driven dispute resolution/refund assistant.
-* **ProvidersMapScreen**: Real-time interactive map overlay showing nearby candidates by category.
-* **FollowUpDashboardScreen**: Displays active background agent operations (Provider Ping, Booking Confirmed, Reminder Scheduled).
+| Env Variable | Default | Used By |
+|---|---|---|
+| `MODEL_NAME` | `gpt-4.1` | IntentParser, Ranker (stronger reasoning) |
+| `SMALL_MODEL_NAME` | `gpt-4.1-mini` | ProviderFinder, Booking, FollowUp (cost-efficient) |
 
 ---
 
-## 🔌 Simulated Actions & Safety
+## Core Features
 
-In accordance with hackathon guidelines, Frix cleanly simulates transactional actions without requiring sensitive personal or payment credentials:
-* **Provider Discovery**: Mock database containing dozens of service providers across 20 Karachi areas (DHA, Clifton, Gulshan-e-Iqbal, PECHS, Saddar, North Nazimabad, etc.) with coordinates, ratings, and schedules.
-* **SMS Notifications**: Simulated using a `"channel: sms_simulated"` status, showing a visual alert on the user's dashboard.
-* **Resilience Engine (T-12)**: If the device goes offline, a highly visible banner appears within **<100ms** and displays an interactive retry error card. If the API hangs for more than **20 seconds**, the app safely triggers an AbortController timeout, displaying an orange timeout warning card and allowing fallback to mock demonstration mode.
+### Backend
+- **Multilingual Intent Parsing** — English, Urdu (Arabic script), Roman Urdu, and mixed-language input.
+- **5-Agent Reasoning Pipeline** — IntentParser → ProviderFinder → Ranker → Booking → FollowUp.
+- **Deterministic Function Tools** — `find_providers`, `simulate_booking`, `schedule_reminder` — all pure functions, no external I/O.
+- **Haversine Distance Calculation** — Real GPS-based distance between user and providers.
+- **Structured Output Types** — Every agent returns a Pydantic model, ensuring typed data flow.
+- **OpenAI SDK Tracing** — Full trace tree visible in the OpenAI dashboard.
+- **Graceful Degradation** — URL validation gate, empty-provider handling, partial-response returns.
+- **Colorized Console Logging** — Rich terminal output showing each agent's execution and timing.
+- **CORS Enabled** — Ready for frontend integration.
+- **Health Check Endpoint** — `GET /health` for uptime monitoring.
 
----
-
-## 🛠️ Step-by-Step Local Setup
-
-### 1. Backend (FastAPI)
-```bash
-# Navigate to the backend directory
-cd backend/
-
-# Install dependencies using uv
-uv sync
-
-# Configure environment variables
-cp .env.example .env
-# Edit .env and enter your Gemini OpenAI-compatible API key:
-# OPENAI_API_KEY=your_key_here
-# OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
-
-# Run the FastAPI server
-uvicorn app.api:app --reload --host 0.0.0.0 --port 8000
-```
-
-### 2. Frontend (Expo React Native / Web)
-```bash
-# Navigate to the frontend directory
-cd karvaan/
-
-# Install packages
-npm install
-
-# Configure environment variables
-cp .env.example .env.local
-# Set your backend local IP address (DO NOT use localhost on physical devices):
-# EXPO_PUBLIC_API_URL=http://<YOUR_LOCAL_IP>:8000
-
-# Start Expo Developer Server
-npx expo start
-```
-*To run completely offline with mock data bypassing the backend API, set `EXPO_PUBLIC_USE_MOCK=true` or triple-tap the location selector on RequestScreen.*
+### Frontend (Karvaan)
+- **Request Screen** — Natural-language input with category chips and location picker.
+- **Agent Thinking Screen** — Animated visualization of the multi-agent pipeline processing.
+- **Results Screen** — Displays top-3 ranked providers with scores and reasoning.
+- **Provider Detail Screen** — Full provider profile with specializations, pricing, and reviews.
+- **Providers Map Screen** — Map view showing provider locations (native + web).
+- **Booking Confirm Screen** — Booking confirmation with receipt details.
+- **Booking Detail Screen** — Post-booking tracking and provider contact.
+- **Follow-Up Dashboard** — Reminder and status tracking.
+- **Dispute Screen** — Issue reporting flow.
+- **Trace Accordion** — Collapsible view of agent reasoning steps.
+- **Mock/Demo Mode** — Toggle between live API and mock responses.
+- **Offline Support** — TanStack Query persistence with MMKV storage.
+- **Error Boundary** — Graceful crash handling with Sentry integration.
+- **Deep Linking** — URI-based navigation support.
 
 ---
 
-## 🚀 Testing Agent Traces via API
+## API Contract
 
-You can test the autonomous Antigravity pipeline directly using `curl` commands:
+### `POST /orchestrate`
 
-### Roman Urdu Service Request
-```bash
-curl -X POST http://localhost:8000/orchestrate \
-  -H 'Content-Type: application/json' \
-  -d '{"user_prompt":"Mujhe kal subah Clifton Block 5 mein AC technician chahiye","user_location":{"area":"Clifton Block 5","city":"Karachi","lat":24.8090,"lng":67.0307}}'
-```
-
-### Urdu Service Request
-```bash
-curl -X POST http://localhost:8000/orchestrate \
-  -H 'Content-Type: application/json' \
-  -d '{"user_prompt":"مجھے ڈی ایچ اے فیز 6 میں پلمبر چاہیے","user_location":{"area":"DHA Phase 6","city":"Karachi","lat":24.7920,"lng":67.0645}}'
-```
-
-### Trace Output Log Example (`backend/logs/trace-<workflow_id>.jsonl`)
+**Request:**
 ```json
-{"agent": "IntentParser", "summary": "Detected: ac_technician | Location: Clifton Block 5 | Time: kal subah | Language: Roman Urdu | Confidence: high"}
-{"agent": "ProviderFinder", "summary": "Found 4 available AC technicians near Clifton Block 5"}
-{"agent": "Ranker", "summary": "Ranked 4 candidates. Recommended: Karachi Air Solutions (Score: 0.94). Reason: 1.2km away with 4.8 stars and morning slot available."}
-{"agent": "Booking", "summary": "Booked Karachi Air Solutions for 2026-05-21T10:00:00 (Confirmation: BK-48d2f190)"}
-{"agent": "FollowUp", "summary": "Scheduled SMS reminder for 2026-05-21T09:00:00 via sms_simulated"}
+{
+  "user_prompt": "Mujhe kal subah DHA Phase 6 mein AC technician chahiye",
+  "user_location": {
+    "area": "DHA Phase 6",
+    "city": "Karachi",
+    "lat": 24.7920,
+    "lng": 67.0645
+  },
+  "current_time": "2026-05-20T22:00:00+05:00"
+}
 ```
 
+**Response (200):**
+```json
+{
+  "intent": {
+    "service_type": "ac_technician",
+    "location": "DHA Phase 6",
+    "time_window": "tomorrow morning",
+    "language_detected": "roman_urdu",
+    "notes": null
+  },
+  "top_providers": [
+    {
+      "id": "ac_001",
+      "name": "Arctic Cool AC Services",
+      "category": "ac_technician",
+      "location": "DHA Phase 6, Karachi",
+      "distance_km": 0.0,
+      "rating": 4.8,
+      "availability": "tomorrow 10:00 AM",
+      "score": 0.95,
+      "reasoning": "Closest provider with highest rating and matching availability."
+    }
+  ],
+  "recommended": { "..." },
+  "booking": {
+    "provider_id": "ac_001",
+    "provider_name": "Arctic Cool AC Services",
+    "slot": "2026-05-21T10:00:00+05:00",
+    "confirmation_id": "BK-20260521-0001",
+    "message": "Slot booked with Arctic Cool AC Services at 2026-05-21T10:00:00+05:00."
+  },
+  "followup": {
+    "booking_id": "BK-20260521-0001",
+    "reminder_at": "2026-05-21T09:00:00+05:00",
+    "channel": "sms_simulated",
+    "message": "Reminder scheduled 1 hour before appointment."
+  },
+  "trace": {
+    "workflow_id": "wf_a1b2c3d4e5f6",
+    "steps": [
+      { "agent": "IntentParser", "summary": "service_type=ac_technician, location=DHA Phase 6, ..." },
+      { "agent": "ProviderFinder", "summary": "found 6 candidate provider(s) ..." },
+      { "agent": "Ranker", "summary": "top 3 ranked; recommended=Arctic Cool AC Services" },
+      { "agent": "Booking", "summary": "booked Arctic Cool AC Services at ..." },
+      { "agent": "FollowUp", "summary": "reminder at ... via sms_simulated" }
+    ]
+  },
+  "error": null
+}
+```
+
+### `GET /health`
+
+Returns `{"status": "ok"}`.
+
 ---
 
-## ⚖️ Assumptions & Limitations
+## Frontend — Karvaan Mobile App
 
-* **Geographic Coverage**: The mock provider dataset is localized specifically to Karachi areas.
-* **Booking Simulation**: All schedules and bookings are managed within the local application memory (Zustand + MMKV) and do not sync to a shared remote database server in real-time.
-* **Authentication**: Simplified down to client-side onboarding to focus grading entirely on the **Google Antigravity** orchestration capabilities.
+The React Native mobile app (`karvaan/`) provides the user-facing interface:
+
+| Screen | Purpose |
+|---|---|
+| `RequestScreen` | User types or speaks their service request |
+| `AgentThinkingScreen` | Animated pipeline visualization while agents work |
+| `ResultsScreen` | Top-3 providers with ranked scores |
+| `ProviderDetailScreen` | Full provider profile |
+| `ProvidersMapScreen` | Map view of providers (native + web variants) |
+| `BookingConfirmScreen` | Booking confirmation receipt |
+| `BookingDetailScreen` | Post-booking details and tracking |
+| `FollowUpDashboardScreen` | Reminders and status |
+| `BookingsListScreen` | All bookings history |
+| `DisputeScreen` | Issue reporting |
+
+**Navigation:** React Navigation with a bottom tab navigator (`MainTabNavigator`) and a root stack (`RootNavigator`). Deep linking is configured via `linkingConfig.ts`.
+
+**State:** Zustand stores for orchestrator state, auth, and theme. TanStack Query for server state with MMKV-backed offline persistence.
 
 ---
 
-## 🏆 Hackathon Gap Analysis
+## Mock Data Coverage
 
-After reviewing the codebase and the official Challenge 2 criteria, **Frix is 100% complete and fully meets all requirements**:
-* **Antigravity Orchestration (25%)**: Complete. Built explicitly on the official Python `agents` SDK, using nested tracing scopes.
-* **Multilingual Input & Intent Parsing (20%)**: Complete. Urdu, Roman Urdu, and English parsed accurately, mapping to 10 distinct trade categories.
-* **Discovery, Matching & Scoring (20%)**: Complete. GPS centroids match nearby providers, and score bars visualizes Distance (40%), Rating (30%), and Schedule (30%).
-* **Action Simulation (15%)**: Complete. Fully simulates appointment confirmations, assignment numbers, receipts, and cancellation logic.
-* **Robust Technical Design (20%)**: Complete. Outstanding responsive CSS positioning, full-screen map layouts, and network resilience.
+The mock provider dataset (`app/mock_data.py`) covers **35 providers** across **20 Karachi areas** and **7 service categories**:
+
+| Category | Count | Areas Covered |
+|---|---|---|
+| AC Technician | 6 | DHA Phase 6, Clifton Block 5, Gulshan Block 13, PECHS Block 2, North Nazimabad Block H, Saddar |
+| Plumber | 6 | PECHS Block 6, Clifton Block 8, Gulshan Block 7, Bahadurabad, Nazimabad No.3, Korangi |
+| Electrician | 6 | DHA Phase 2, Tariq Road, Federal B Area Block 4, North Nazimabad Block J, Malir Cantonment, Saddar |
+| Carpenter | 6 | Gulshan Block 13, DHA Phase 6, Bahadurabad, PECHS Block 2, Nazimabad No.3, Orangi Town |
+| Painter | 6 | Clifton Block 5, DHA Phase 2, PECHS Block 6, Gulshan Block 7, North Nazimabad Block H, Surjani Town |
+| Tutor | 5 | Clifton Block 8, Gulshan Block 13, PECHS Block 2, Tariq Road, North Nazimabad Block J |
+| Beautician | 5 | DHA Phase 6, Clifton Block 5, Bahadurabad, Gulshan Block 7, Malir Cantonment |
+
+Each provider includes: GPS coordinates, rating, availability, specializations, pricing (base fee + per hour in PKR), years of experience, on-time score, cancellation rate, review count, and phone number.
+
+---
+
+## Agent Trace & Logs
+
+### OpenAI Dashboard Traces
+With `OPENAI_API_KEY` set and tracing enabled, every `Runner.run()` call produces a trace span in the OpenAI dashboard. The `trace()` context manager groups all 5 agent runs under a single `ServiceOrchestrator` workflow.
+
+### Console Trace
+The runtime outputs a colorized, structured console log for every request showing:
+- Agent name and execution time per step.
+- Detected intent fields (trade, area, schedule, language).
+- Discovered candidate list.
+- Weighted leaderboard with scores and reasoning.
+- Booking confirmation details.
+- Follow-up reminder scheduling.
+- Total workflow duration.
+
+### Response Trace
+Every API response includes a `trace` field with `workflow_id` and an array of `steps`, each containing the agent name and a summary of its output.
+
+---
+
+## Evaluation Criteria Mapping
+
+| Criterion | Weight | How Frix Addresses It |
+|---|---|---|
+| **Use of Google Antigravity** | 25% | Antigravity used as the development IDE for building the entire project. |
+| **Agentic Reasoning & Workflow** | 20% | 5-agent chain with typed handoffs, full trace tree, structured reasoning pipeline. |
+| **Matching Quality & Decision Logic** | 20% | Haversine distance + rating + availability scoring with transparent weights (40/30/30). |
+| **Action Simulation & Execution** | 15% | Deterministic booking confirmation IDs, simulated SMS reminders, clear state transitions. |
+| **Technical Implementation** | 10% | Clean separation (agents/tools/runtime/api), Pydantic v2, graceful error handling, CORS, health check. |
+| **Innovation & UX** | 10% | React Native mobile app with animated agent-thinking visualization, map view, offline support, trace accordion. |
+
+---
+
+## Assumptions & Limitations
+
+- **Mock data only** — No real Maps API, no real booking provider, no persistence between requests.
+- **Karachi-focused** — Mock provider dataset covers 20 Karachi areas. Extendable via `mock_data.py`.
+- **Simulated booking** — Confirmation IDs are generated in-process and reset on server restart.
+- **No auth** — The backend has no authentication; the frontend uses Google Sign-In independently.
+- **LLM dependency** — Agent reasoning requires an OpenAI-compatible API key (OpenAI, Gemini, etc.).
+- **No real SMS** — Reminders use `sms_simulated` channel; no actual messages are sent.
+- **Frontend is the mobile deliverable** — The backend is a self-contained API; the Karvaan app is the user-facing product.
+
+---
+
+## Team
+
+Built for the **Google Antigravity Hackathon** — Challenge 2: AI Service Orchestrator for Informal Economy.
