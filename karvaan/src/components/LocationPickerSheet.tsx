@@ -3,20 +3,20 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList } from '@gorhom/bottom-sheet';
 
-const SECTORS = [
-  { sector: 'G-13', lat: 33.650, lng: 72.990, city: 'Islamabad' },
-  { sector: 'F-10', lat: 33.706, lng: 73.022, city: 'Islamabad' },
-  { sector: 'F-11', lat: 33.716, lng: 73.010, city: 'Islamabad' },
-  { sector: 'G-9',  lat: 33.682, lng: 73.030, city: 'Islamabad' },
-  { sector: 'I-8',  lat: 33.671, lng: 73.064, city: 'Islamabad' },
+const AREAS = [
+  { area: 'DHA Phase 6', lat: 24.7920, lng: 67.0645, city: 'Karachi' },
+  { area: 'Clifton Block 5', lat: 24.8090, lng: 67.0307, city: 'Karachi' },
+  { area: 'Gulshan-e-Iqbal Block 13', lat: 24.9197, lng: 67.1134, city: 'Karachi' },
+  { area: 'PECHS Block 2', lat: 24.8654, lng: 67.0590, city: 'Karachi' },
+  { area: 'Saddar', lat: 24.8607, lng: 67.0099, city: 'Karachi' },
 ];
 
 interface LocationPickerSheetProps {
   sheetRef: React.RefObject<BottomSheet>;
-  currentSector: string;
+  currentArea: string;
   currentCity: string;
   userCoords?: { latitude: number; longitude: number } | null;
-  onSelectLocation: (sector: string, lat: number, lng: number) => void;
+  onSelectLocation: (area: string, lat: number, lng: number) => void;
 }
 
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -26,7 +26,7 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
 
 export function LocationPickerSheet({
   sheetRef,
-  currentSector,
+  currentArea,
   currentCity,
   userCoords,
   onSelectLocation,
@@ -37,11 +37,11 @@ export function LocationPickerSheet({
     <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.6} />
   );
 
-  // Dynamically sort the sectors so the user's nearest local sectors appear at the top
-  const sortedSectors = useMemo(() => {
+  // Dynamically sort the areas so the user's nearest local areas appear at the top
+  const sortedAreas = useMemo(() => {
     if (!userCoords) {
-      // Group-sort: Show current city's sectors first, then other cities
-      return [...SECTORS].sort((a, b) => {
+      // Group-sort: Show current city's areas first, then other cities
+      return [...AREAS].sort((a, b) => {
         const aMatch = a.city.toLowerCase() === currentCity.toLowerCase();
         const bMatch = b.city.toLowerCase() === currentCity.toLowerCase();
         if (aMatch && !bMatch) return -1;
@@ -51,7 +51,7 @@ export function LocationPickerSheet({
     }
 
     // Sort strictly by physical proximity to the user's GPS location
-    return [...SECTORS].sort((a, b) => {
+    return [...AREAS].sort((a, b) => {
       const distA = getDistance(userCoords.latitude, userCoords.longitude, a.lat, a.lng);
       const distB = getDistance(userCoords.latitude, userCoords.longitude, b.lat, b.lng);
       return distA - distB;
@@ -69,28 +69,28 @@ export function LocationPickerSheet({
       handleIndicatorStyle={styles.handleIndicator}
     >
       <View style={styles.container}>
-        <Text style={styles.title}>Select Your Sector</Text>
+        <Text style={styles.title}>Select Your Area</Text>
         <Text style={styles.subtitle}>
-          Choose your location (nearest sectors sorted first)
+          Choose your location (nearest areas sorted first)
         </Text>
 
         <BottomSheetFlatList
-          data={sortedSectors}
-          keyExtractor={(item) => `${item.city}-${item.sector}`}
+          data={sortedAreas}
+          keyExtractor={(item) => `${item.city}-${item.area}`}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => {
-            const isSelected = item.sector === currentSector;
+            const isSelected = item.area === currentArea;
             return (
               <TouchableOpacity
                 style={[styles.itemCard, isSelected && styles.itemCardSelected]}
-                onPress={() => onSelectLocation(item.sector, item.lat, item.lng)}
+                onPress={() => onSelectLocation(item.area, item.lat, item.lng)}
                 activeOpacity={0.8}
               >
                 <View style={styles.itemLeft}>
                   <Text style={styles.icon}>{isSelected ? '📍' : '🏢'}</Text>
                   <View>
                     <Text style={[styles.sectorName, isSelected && styles.sectorNameSelected]}>
-                      {item.sector}
+                      {item.area}
                     </Text>
                     <Text style={styles.cityName}>{item.city}</Text>
                   </View>

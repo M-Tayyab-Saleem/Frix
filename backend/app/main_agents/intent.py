@@ -19,8 +19,8 @@ Extract a structured ServiceIntent:
   ac_technician, plumber, electrician, house_cleaner, carpenter, painter,
   mechanic, mason, driver, tailor. If the user says "AC theek karwana hai" /
   "AC repair" / "اے سی ٹھیک" → "ac_technician".
-- location: the Islamabad sector or area the user mentions (e.g. "G-13", "F-10").
-  If the user does not specify one, copy the sector from the supplied user
+- location: the Karachi area or neighborhood the user mentions (e.g. "DHA Phase 6", "Clifton Block 5").
+  If the user does not specify one, copy the area from the supplied user
   context (provided in the prompt). If still unknown, use "unknown".
 - time_window: a short human phrase like "tomorrow morning", "today 8pm",
   "as soon as possible". Preserve the user's intent — do not invent specifics.

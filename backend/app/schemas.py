@@ -16,10 +16,10 @@ from pydantic import BaseModel, Field
 
 
 class UserLocation(BaseModel):
-    sector: Optional[str] = Field(
-        default=None, description="Islamabad sector code, e.g. 'G-13', 'F-10'."
+    area: Optional[str] = Field(
+        default=None, description="Karachi area / neighborhood code, e.g. 'DHA Phase 6', 'Clifton Block 5'."
     )
-    city: Optional[str] = "Islamabad"
+    city: Optional[str] = "Karachi"
     lat: Optional[float] = None
     lng: Optional[float] = None
 
@@ -47,7 +47,7 @@ class ServiceIntent(BaseModel):
     )
     location: str = Field(
         ...,
-        description="Sector / area the user wants the service in, e.g. 'G-13'.",
+        description="Area the user wants the service in, e.g. 'DHA Phase 6'.",
     )
     time_window: str = Field(
         ...,
@@ -72,6 +72,17 @@ class Provider(BaseModel):
     rating: float
     availability: str
     price_range: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    area: Optional[str] = None
+    on_time_score: Optional[float] = None
+    cancellation_rate: Optional[float] = None
+    review_count: Optional[int] = None
+    specializations: Optional[list[str]] = None
+    base_fee_pkr: Optional[int] = None
+    per_hour_pkr: Optional[int] = None
+    years_experience: Optional[int] = None
+    phone: Optional[str] = None
 
 
 class RankedProvider(BaseModel):
@@ -85,6 +96,17 @@ class RankedProvider(BaseModel):
     rating: float
     availability: str
     price_range: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    area: Optional[str] = None
+    on_time_score: Optional[float] = None
+    cancellation_rate: Optional[float] = None
+    review_count: Optional[int] = None
+    specializations: Optional[list[str]] = None
+    base_fee_pkr: Optional[int] = None
+    per_hour_pkr: Optional[int] = None
+    years_experience: Optional[int] = None
+    phone: Optional[str] = None
     score: float = Field(..., ge=0.0, le=1.0)
     reasoning: str
 

@@ -2,7 +2,7 @@
 // Phase 2 will fill this in fully. Stub created in Phase 1 to satisfy navigation.ts imports.
 
 export interface UserLocation {
-  sector?: string | null;
+  area?: string | null;
   city?: string | null;
   lat?: number | null;
   lng?: number | null;

@@ -13,7 +13,7 @@ from itertools import count
 
 from agents import function_tool
 
-from .mock_data import MOCK_PROVIDERS, SECTOR_COORDS
+from .mock_data import MOCK_PROVIDERS, KARACHI_COORDS
 
 
 # Deterministic-ish per-process booking counter (resets when the server restarts;
@@ -31,57 +31,88 @@ def _haversine_km(a: tuple[float, float], b: tuple[float, float]) -> float:
     return round(2 * 6371.0 * math.asin(math.sqrt(h)), 2)
 
 
-def _distance_between_sectors(user_sector: str, provider_sector: str) -> float:
-    """Fake but plausible distance based on sector centroids.
-
-    Falls back to 5km when a sector code is unknown — keeps the demo robust to
-    unfamiliar inputs without crashing the workflow.
-    """
-    user = SECTOR_COORDS.get(user_sector.upper())
-    prov = SECTOR_COORDS.get(provider_sector.upper())
-    if user is None or prov is None:
-        return 5.0
-    return _haversine_km(user, prov)
-
-
-def find_providers_raw(service_type: str, location: str) -> list[dict]:
+def find_providers_raw(
+    service_type: str,
+    location: str,
+    user_lat: float | None = None,
+    user_lng: float | None = None,
+) -> list[dict]:
     needle = service_type.strip().lower().replace("-", "_").replace(" ", "_")
     out: list[dict] = []
+    
+    # 1. Determine user location coordinate pair (lat, lng)
+    user_pt = None
+    if user_lat is not None and user_lng is not None:
+        user_pt = (user_lat, user_lng)
+    else:
+        # Fall back to centroid of user's area
+        user_pt = KARACHI_COORDS.get(location)
+        if not user_pt:
+            # Case-insensitive fallback
+            for k, v in KARACHI_COORDS.items():
+                if k.lower() == location.lower():
+                    user_pt = v
+                    break
+                    
     for p in MOCK_PROVIDERS:
         if p["category"] != needle:
             continue
-        distance = _distance_between_sectors(location, p["sector"])
+            
+        # Calculate distance
+        if user_pt is not None:
+            distance = _haversine_km(user_pt, (p["lat"], p["lng"]))
+        else:
+            # Default to 5.0 km if user coordinates are not known
+            distance = 5.0
+            
         out.append(
             {
                 "id": p["id"],
                 "name": p["name"],
                 "category": p["category"],
-                "location": p["sector"],
+                "location": f"{p['area']}, Karachi",
                 "distance_km": distance,
                 "rating": p["rating"],
                 "availability": p["availability"],
                 "price_range": p.get("price_range"),
+                "lat": p["lat"],
+                "lng": p["lng"],
+                "area": p["area"],
+                "on_time_score": p.get("on_time_score"),
+                "cancellation_rate": p.get("cancellation_rate"),
+                "review_count": p.get("review_count"),
+                "specializations": p.get("specializations"),
+                "base_fee_pkr": p.get("base_fee_pkr"),
+                "per_hour_pkr": p.get("per_hour_pkr"),
+                "years_experience": p.get("years_experience"),
+                "phone": p.get("phone"),
             }
         )
-    # Sort by distance so the LLM sees nearby options first; the Ranker will
-    # still do its own weighted scoring.
+    # Sort by distance so nearby options are first
     out.sort(key=lambda x: x["distance_km"])
     return out
 
 
 @function_tool
-def find_providers(service_type: str, location: str) -> list[dict]:
-    """Return mock providers matching a service category near a sector.
+def find_providers(
+    service_type: str,
+    location: str,
+    user_lat: float | None = None,
+    user_lng: float | None = None,
+) -> list[dict]:
+    """Return mock providers matching a service category near a Karachi area.
 
     Args:
         service_type: snake_case category like 'ac_technician', 'plumber'.
-        location: Islamabad sector code like 'G-13'. Case-insensitive.
+        location: Karachi area name like 'DHA Phase 6'. Case-insensitive.
+        user_lat: Optional user latitude.
+        user_lng: Optional user longitude.
 
     Returns:
         A list of provider dicts with computed `distance_km` to `location`.
         Empty list if nothing matches.
     """
-    return find_providers_raw(service_type, location)
+    return find_providers_raw(service_type, location, user_lat, user_lng)
 
 
 def simulate_booking_raw(provider_id: str, provider_name: str, slot_iso: str) -> dict:

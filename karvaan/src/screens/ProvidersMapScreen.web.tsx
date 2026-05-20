@@ -20,77 +20,77 @@ import type { Provider } from '../types/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Islamabad mock providers across various sectors
-const MOCK_MAP_PROVIDERS: (Provider & { lat: number; lng: number; sectorName: string })[] = [
+// Karachi mock providers across various areas
+const MOCK_MAP_PROVIDERS: (Provider & { lat: number; lng: number; areaName: string })[] = [
   {
-    id: 'p_001',
-    name: 'Ali AC Services',
+    id: 'ac_001',
+    name: 'Arctic Cool AC Services',
     category: 'ac_technician',
-    location: 'G-13, Islamabad',
+    location: 'DHA Phase 6, Karachi',
     distance_km: 1.2,
-    rating: 4.9,
+    rating: 4.8,
     availability: 'Available',
     score: 0.93,
     reasoning: 'Closest provider with highest rating.',
-    lat: 33.650,
-    lng: 72.990,
-    sectorName: 'G-13',
+    lat: 24.7920,
+    lng: 67.0645,
+    areaName: 'DHA Phase 6',
   },
   {
-    id: 'p_002',
-    name: 'Karachi Cool Systems',
+    id: 'ac_002',
+    name: 'CoolBreeze AC Repair',
     category: 'ac_technician',
-    location: 'F-10, Islamabad',
+    location: 'Clifton Block 5, Karachi',
     distance_km: 3.4,
     rating: 4.7,
     availability: 'Available',
     score: 0.78,
     reasoning: 'High-quality feedback, slightly further distance.',
-    lat: 33.706,
-    lng: 73.022,
-    sectorName: 'F-10',
+    lat: 24.8090,
+    lng: 67.0307,
+    areaName: 'Clifton Block 5',
   },
   {
-    id: 'p_003',
-    name: 'QuickFix AC',
-    category: 'ac_technician',
-    location: 'F-11, Islamabad',
+    id: 'el_001',
+    name: 'Siddiqui Electricians',
+    category: 'electrician',
+    location: 'Gulshan-e-Iqbal Block 13, Karachi',
     distance_km: 4.1,
     rating: 4.5,
     availability: 'Available Today',
     score: 0.61,
     reasoning: 'Decent feedback, but longer dispatch queue.',
-    lat: 33.716,
-    lng: 73.010,
-    sectorName: 'F-11',
+    lat: 24.9197,
+    lng: 67.1134,
+    areaName: 'Gulshan-e-Iqbal',
   },
   {
-    id: 'p_004',
-    name: 'Khan Plumbing Co.',
+    id: 'pl_001',
+    name: 'Express Plumbers',
     category: 'plumber',
-    location: 'G-9, Islamabad',
+    location: 'PECHS Block 2, Karachi',
     distance_km: 2.1,
     rating: 4.8,
     availability: 'Available',
     score: 0.89,
     reasoning: 'Highly recommended local plumbing expert.',
-    lat: 33.682,
-    lng: 73.030,
-    sectorName: 'G-9',
+    lat: 24.8654,
+    lng: 67.0590,
+    areaName: 'PECHS Block 2',
   },
   {
-    id: 'p_005',
-    name: 'Spark Electricians',
-    category: 'electrician',
-    location: 'I-8, Islamabad',
+    id: 'pl_002',
+    name: 'Karachi Plumbing Works',
+    category: 'plumber',
+    location: 'Saddar, Karachi',
     distance_km: 5.2,
     rating: 4.6,
     availability: 'Available',
     score: 0.82,
-    reasoning: 'Fast responder for electrical shortages.',
-    lat: 33.671,
-    lng: 73.064,
-    sectorName: 'I-8',
+    reasoning: 'Fast responder for plumbing issues.',
+    lat: 24.8607,
+    lng: 67.0099,
+    areaName: 'Saddar',
   },
 ];
 
@@ -173,11 +173,11 @@ export function ProvidersMapScreen(): React.JSX.Element {
             <View style={styles.mapGridLineH2} />
             <View style={styles.mapGridLineV1} />
             <View style={styles.mapGridLineV2} />
-            <View style={styles.sectorLabelG13}><Text style={styles.sectorLabelText}>G-13 SECTOR</Text></View>
-            <View style={styles.sectorLabelF10}><Text style={styles.sectorLabelText}>F-10 SECTOR</Text></View>
-            <View style={styles.sectorLabelF11}><Text style={styles.sectorLabelText}>F-11 SECTOR</Text></View>
-            <View style={styles.sectorLabelG9}><Text style={styles.sectorLabelText}>G-9 SECTOR</Text></View>
-            <View style={styles.sectorLabelI8}><Text style={styles.sectorLabelText}>I-8 SECTOR</Text></View>
+            <View style={styles.sectorLabelG13}><Text style={styles.sectorLabelText}>DHA PHASE 6</Text></View>
+            <View style={styles.sectorLabelF10}><Text style={styles.sectorLabelText}>CLIFTON BLOCK 5</Text></View>
+            <View style={styles.sectorLabelF11}><Text style={styles.sectorLabelText}>GULSHAN-E-IQBAL</Text></View>
+            <View style={styles.sectorLabelG9}><Text style={styles.sectorLabelText}>PECHS BLOCK 2</Text></View>
+            <View style={styles.sectorLabelI8}><Text style={styles.sectorLabelText}>SADDAR</Text></View>
           </View>
 
           {/* Render markers inside the grid layout */}
@@ -186,19 +186,19 @@ export function ProvidersMapScreen(): React.JSX.Element {
             let topOffset = '45%';
             let leftOffset = '50%';
 
-            if (prov.sectorName === 'G-13') {
+            if (prov.areaName === 'DHA Phase 6') {
               topOffset = '30%';
               leftOffset = '20%';
-            } else if (prov.sectorName === 'F-10') {
+            } else if (prov.areaName === 'Clifton Block 5') {
               topOffset = '22%';
               leftOffset = '75%';
-            } else if (prov.sectorName === 'F-11') {
+            } else if (prov.areaName === 'Gulshan-e-Iqbal') {
               topOffset = '18%';
               leftOffset = '48%';
-            } else if (prov.sectorName === 'G-9') {
+            } else if (prov.areaName === 'PECHS Block 2') {
               topOffset = '55%';
               leftOffset = '35%';
-            } else if (prov.sectorName === 'I-8') {
+            } else if (prov.areaName === 'Saddar') {
               topOffset = '65%';
               leftOffset = '72%';
             }

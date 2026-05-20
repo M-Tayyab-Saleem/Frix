@@ -282,7 +282,7 @@ export function AgentThinkingScreen(): React.JSX.Element {
             <View style={styles.promptBubbleHeader}>
               <Text style={styles.promptBubbleTitle}>Your Request</Text>
               <Text style={styles.promptLanguage}>
-                <Ionicons name="location" size={12} color="#9AA0A6" /> {userLocation.sector} · Islamabad
+                <Ionicons name="location" size={12} color="#9AA0A6" /> {userLocation.area} · {userLocation.city || 'Karachi'}
               </Text>
             </View>
             <Text style={styles.promptText}>"{userPrompt}"</Text>

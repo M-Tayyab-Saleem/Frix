@@ -156,7 +156,7 @@ export function BookingDetailScreen(): React.JSX.Element {
       case 'en_route':
         return {
           title: 'Provider En Route',
-          desc: `${providerName} is currently traveling toward your sector location.`,
+          desc: `${providerName} is currently traveling toward your area location.`,
           color: '#F9AB00',
         };
       case 'in_progress':

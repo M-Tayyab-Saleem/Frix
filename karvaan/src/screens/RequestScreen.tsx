@@ -28,6 +28,7 @@ import { useOrchestratorStore } from '@/store/orchestratorStore';
 import { useThemeStore } from '@/store/themeStore';
 import { getIsMockActive } from '@/api/orchestrator';
 import { LocationPickerSheet } from '@/components/LocationPickerSheet';
+import { LocationMapPickerModal } from '@/components/LocationMapPickerModal';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import type { RootStackParamList } from '@/navigation/types';
 import type { UserLocation } from '@/types/api';
@@ -36,22 +37,37 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const EXAMPLE_PROMPTS = [
   'AC bilkul kaam nahi kar raha. Chilling nahi ho rahi.',
-  'Need a certified plumber in F-10 to fix a leaking tap ASAP.',
-  'Kal subah electrician chahiye G-13 mein room light change karne ke liye.',
+  'Need a certified plumber in Clifton to fix a leaking tap ASAP.',
+  'Kal subah electrician chahiye DHA Phase 6 mein room light change karne ke liye.',
 ];
 
-const SECTOR_COORDS: { sector: string; lat: number; lng: number; city: string }[] = [
-  { sector: 'G-13', lat: 33.650, lng: 72.990, city: 'Islamabad' },
-  { sector: 'F-10', lat: 33.706, lng: 73.022, city: 'Islamabad' },
-  { sector: 'F-11', lat: 33.716, lng: 73.010, city: 'Islamabad' },
-  { sector: 'G-9',  lat: 33.682, lng: 73.030, city: 'Islamabad' },
-  { sector: 'I-8',  lat: 33.671, lng: 73.064, city: 'Islamabad' },
+const KARACHI_AREAS: { area: string; lat: number; lng: number; city: string }[] = [
+  { area: "DHA Phase 6", lat: 24.7920, lng: 67.0645, city: "Karachi" },
+  { area: "DHA Phase 2", lat: 24.8104, lng: 67.0657, city: "Karachi" },
+  { area: "Clifton Block 5", lat: 24.8090, lng: 67.0307, city: "Karachi" },
+  { area: "Clifton Block 8", lat: 24.8207, lng: 67.0254, city: "Karachi" },
+  { area: "Gulshan-e-Iqbal Block 13", lat: 24.9197, lng: 67.1134, city: "Karachi" },
+  { area: "Gulshan-e-Iqbal Block 7", lat: 24.9253, lng: 67.1005, city: "Karachi" },
+  { area: "PECHS Block 2", lat: 24.8654, lng: 67.0590, city: "Karachi" },
+  { area: "PECHS Block 6", lat: 24.8694, lng: 67.0635, city: "Karachi" },
+  { area: "North Nazimabad Block H", lat: 24.9439, lng: 67.0505, city: "Karachi" },
+  { area: "North Nazimabad Block J", lat: 24.9476, lng: 67.0549, city: "Karachi" },
+  { area: "Nazimabad No.3", lat: 24.9237, lng: 67.0317, city: "Karachi" },
+  { area: "Bahadurabad", lat: 24.8787, lng: 67.0639, city: "Karachi" },
+  { area: "Tariq Road", lat: 24.8638, lng: 67.0653, city: "Karachi" },
+  { area: "Federal B Area Block 4", lat: 24.9304, lng: 67.0697, city: "Karachi" },
+  { area: "Malir Cantonment", lat: 24.8936, lng: 67.2002, city: "Karachi" },
+  { area: "Korangi", lat: 24.8296, lng: 67.1282, city: "Karachi" },
+  { area: "Landhi", lat: 24.8554, lng: 67.2012, city: "Karachi" },
+  { area: "Orangi Town", lat: 24.9604, lng: 67.0018, city: "Karachi" },
+  { area: "Surjani Town", lat: 25.0165, lng: 67.0416, city: "Karachi" },
+  { area: "Saddar", lat: 24.8607, lng: 67.0099, city: "Karachi" }
 ];
 
-function nearestSector(lat: number, lng: number): { sector: string; lat: number; lng: number; city: string } {
-  let best = SECTOR_COORDS[0];
+function nearestArea(lat: number, lng: number): { area: string; lat: number; lng: number; city: string } {
+  let best = KARACHI_AREAS[0];
   let bestDist = Infinity;
-  for (const s of SECTOR_COORDS) {
+  for (const s of KARACHI_AREAS) {
     const d = Math.abs(s.lat - lat) + Math.abs(s.lng - lng);
     if (d < bestDist) {
       bestDist = d;
@@ -80,10 +96,10 @@ export function RequestScreen(): React.JSX.Element {
   const [isManualLang, setIsManualLang] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [resolvedLocation, setResolvedLocation] = useState<UserLocation>({
-    sector: 'G-13',
-    city: 'Islamabad',
-    lat: 33.650,
-    lng: 72.990,
+    area: 'DHA Phase 6',
+    city: 'Karachi',
+    lat: 24.7920,
+    lng: 67.0645,
   });
 
   const [isListening, setIsListening] = useState(false);
@@ -133,6 +149,8 @@ export function RequestScreen(): React.JSX.Element {
     }
   }, [isListening]);
 
+  const [mapPickerVisible, setMapPickerVisible] = useState(false);
+
   // Proactively request GPS permission and fetch real coordinates on mount
   useEffect(() => {
     requestPermission();
@@ -141,9 +159,9 @@ export function RequestScreen(): React.JSX.Element {
   // Update resolvedLocation based on GPS coordinates
   useEffect(() => {
     if (coords) {
-      const best = nearestSector(coords.latitude, coords.longitude);
+      const best = nearestArea(coords.latitude, coords.longitude);
       setResolvedLocation({
-        sector: best.sector,
+        area: best.area,
         city: best.city,
         lat: coords.latitude,
         lng: coords.longitude,
@@ -180,22 +198,27 @@ export function RequestScreen(): React.JSX.Element {
 
   // Location Picker
   const handleOpenLocationPicker = () => {
-    sheetRef.current?.expand();
+    setMapPickerVisible(true);
   };
 
-  const handleSelectLocation = useCallback((sector: string, lat: number, lng: number) => {
-    const sectorObj = SECTOR_COORDS.find(s => s.sector === sector);
-    const city = sectorObj ? sectorObj.city : 'Islamabad';
+  const handleMapConfirm = useCallback((area: string, lat: number, lng: number) => {
+    updateLocationManually({ latitude: lat, longitude: lng }, area);
+    setResolvedLocation({ area, city: 'Karachi', lat, lng });
+  }, [updateLocationManually]);
+
+  const handleSelectLocation = useCallback((area: string, lat: number, lng: number) => {
+    const areaObj = KARACHI_AREAS.find(a => a.area === area);
+    const city = areaObj ? areaObj.city : 'Karachi';
     
-    // If real GPS coordinates are available, use high-precision device lat/lng for selected sector
+    // If real GPS coordinates are available, use high-precision device lat/lng for selected area
     let finalLat = lat;
     let finalLng = lng;
     if (coords) {
       finalLat = coords.latitude;
       finalLng = coords.longitude;
     }
-    updateLocationManually({ latitude: finalLat, longitude: finalLng }, sector);
-    setResolvedLocation({ sector, city, lat: finalLat, lng: finalLng });
+    updateLocationManually({ latitude: finalLat, longitude: finalLng }, area);
+    setResolvedLocation({ area, city, lat: finalLat, lng: finalLng });
     sheetRef.current?.close();
   }, [coords, updateLocationManually]);
 
@@ -355,7 +378,7 @@ export function RequestScreen(): React.JSX.Element {
                 <ActivityIndicator size="small" color="#1A73E8" style={s.spinner} />
               ) : (
                 <Text style={s.locationText}>
-                  {resolvedLocation.sector} · {resolvedLocation.city}
+                  {resolvedLocation.area} · {resolvedLocation.city}
                 </Text>
               )}
             </View>
@@ -406,9 +429,17 @@ export function RequestScreen(): React.JSX.Element {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      <LocationMapPickerModal
+        visible={mapPickerVisible}
+        onClose={() => setMapPickerVisible(false)}
+        onConfirm={handleMapConfirm}
+        initialLat={resolvedLocation.lat}
+        initialLng={resolvedLocation.lng}
+      />
+
       <LocationPickerSheet
         sheetRef={sheetRef}
-        currentSector={resolvedLocation.sector}
+        currentArea={resolvedLocation.area}
         currentCity={resolvedLocation.city}
         userCoords={coords ? { latitude: coords.latitude, longitude: coords.longitude } : null}
         onSelectLocation={handleSelectLocation}

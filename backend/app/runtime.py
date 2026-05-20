@@ -85,12 +85,17 @@ def _intent_prompt(req: OrchestrateRequest) -> str:
     )
 
 
-def _discovery_prompt(intent: ServiceIntent) -> str:
-    return (
+def _discovery_prompt(
+    intent: ServiceIntent, user_lat: float | None = None, user_lng: float | None = None
+) -> str:
+    prompt = (
         "Find providers for this intent. Call the find_providers tool with the "
         "exact service_type and location below, then return all results.\n\n"
         f"Intent:\n{intent.model_dump_json(indent=2)}"
     )
+    if user_lat is not None and user_lng is not None:
+        prompt += f"\n\nUser GPS coordinates: lat={user_lat}, lng={user_lng}"
+    return prompt
 
 
 def _ranker_prompt(intent: ServiceIntent, candidates_json: str) -> str:
@@ -160,7 +165,7 @@ async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
     print(f"{BOLD}► STARTING AUTONOMOUS PIPELINE FOR PROMPT:{RESET}")
     print(f"  {YELLOW}\"{req.user_prompt}\"{RESET}")
     if req.user_location:
-        print(f"  {DIM}GPS Coordinates: ({req.user_location.lat}, {req.user_location.lng}) @ Sector {req.user_location.sector}{RESET}")
+        print(f"  {DIM}GPS Coordinates: ({req.user_location.lat}, {req.user_location.lng}) @ Area {req.user_location.area}{RESET}")
     print(f"  {DIM}Timestamp: {current_time}{RESET}\n")
 
     # Proactive URL/web address/localhost validation at the entry gate
@@ -221,14 +226,14 @@ async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
         with trace(workflow_name="ServiceOrchestrator", group_id=workflow_id):
             # 1. IntentParser ----------------------------------------------------
             _section("1. INTENT PARSER AGENT (IntentParser)", MAGENTA)
-            print(f"   {DIM}Analyzing request language, required trade category, and sector...{RESET}")
+            print(f"   {DIM}Analyzing request language, required trade category, and area...{RESET}")
             t_start = time.time()
             intent_res = await Runner.run(intent_agent, _intent_prompt(req))
             intent: ServiceIntent = intent_res.final_output
             _done("IntentParser", time.time() - t_start)
             
             _kv("Detected Trade", intent.service_type.upper(), CYAN)
-            _kv("Target Sector", intent.location, CYAN)
+            _kv("Target Area", intent.location, CYAN)
             _kv("Target Schedule", intent.time_window, CYAN)
             _kv("Detected Language", intent.language_detected.upper(), CYAN)
             
@@ -246,15 +251,19 @@ async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
 
             # 2. ProviderFinder --------------------------------------------------
             _section("2. DISCOVERY AGENT (ProviderFinder)", BLUE)
-            print(f"   {DIM}Querying directory database for trade type '{intent.service_type}' near sector '{intent.location}'...{RESET}")
+            print(f"   {DIM}Querying directory database for trade type '{intent.service_type}' near area '{intent.location}'...{RESET}")
             t_start = time.time()
-            disc_res = await Runner.run(discovery_agent, _discovery_prompt(intent))
+            user_lat = req.user_location.lat if req.user_location else None
+            user_lng = req.user_location.lng if req.user_location else None
+            disc_res = await Runner.run(
+                discovery_agent, _discovery_prompt(intent, user_lat, user_lng)
+            )
             candidates = disc_res.final_output  # ProviderCandidates
             _done("ProviderFinder", time.time() - t_start)
             
             print(f"   {BOLD}Discovered Candidates:{RESET}")
             for idx, p in enumerate(candidates.providers, 1):
-                print(f"     {idx}. {BOLD}{p.name}{RESET} (Sector: {p.location}, Rating: {p.rating}⭐, Availability: {p.availability})")
+                print(f"     {idx}. {BOLD}{p.name}{RESET} (Area: {p.location}, Rating: {p.rating}⭐, Availability: {p.availability})")
 
             steps.append(
                 TraceStep(

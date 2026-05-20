@@ -108,7 +108,7 @@ export function ResultsScreen(): React.JSX.Element {
               <View style={styles.gridItem}>
                 <Text style={styles.gridLabel}>TARGET AREA</Text>
                 <Text style={styles.gridValue} numberOfLines={1}>
-                  <Ionicons name="location" size={12} color={Colors.border} /> {typeof intent.location === 'string' ? intent.location : 'Islamabad'}
+                  <Ionicons name="location" size={12} color={Colors.border} /> {typeof intent.location === 'string' ? intent.location : 'Karachi'}
                 </Text>
               </View>
 

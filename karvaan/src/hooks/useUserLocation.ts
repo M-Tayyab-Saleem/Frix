@@ -66,11 +66,11 @@ const resolveNeighbourhood = async (latitude: number, longitude: number): Promis
   }
 };
 
-// Fallback to G-13 Islamabad coordinates if GPS is unavailable
+// Fallback to DHA Phase 6, Karachi coordinates if GPS is unavailable
 const getFallbackLocation = (): CachedLocation => ({
-  latitude: 33.650,
-  longitude: 72.990,
-  neighbourhood: 'G-13',
+  latitude: 24.7920,
+  longitude: 67.0645,
+  neighbourhood: 'DHA Phase 6',
   timestamp: Date.now(),
 });
 
