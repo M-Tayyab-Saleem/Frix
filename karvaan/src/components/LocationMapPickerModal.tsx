@@ -1,46 +1,9 @@
 // src/components/LocationMapPickerModal.tsx
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, Platform, ActivityIndicator } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, Animated, Platform, ActivityIndicator } from 'react-native';
+import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-const KARACHI_AREAS: { area: string; lat: number; lng: number; city: string }[] = [
-  { area: "DHA Phase 6", lat: 24.7920, lng: 67.0645, city: "Karachi" },
-  { area: "DHA Phase 2", lat: 24.8104, lng: 67.0657, city: "Karachi" },
-  { area: "Clifton Block 5", lat: 24.8090, lng: 67.0307, city: "Karachi" },
-  { area: "Clifton Block 8", lat: 24.8207, lng: 67.0254, city: "Karachi" },
-  { area: "Gulshan-e-Iqbal Block 13", lat: 24.9197, lng: 67.1134, city: "Karachi" },
-  { area: "Gulshan-e-Iqbal Block 7", lat: 24.9253, lng: 67.1005, city: "Karachi" },
-  { area: "PECHS Block 2", lat: 24.8654, lng: 67.0590, city: "Karachi" },
-  { area: "PECHS Block 6", lat: 24.8694, lng: 67.0635, city: "Karachi" },
-  { area: "North Nazimabad Block H", lat: 24.9439, lng: 67.0505, city: "Karachi" },
-  { area: "North Nazimabad Block J", lat: 24.9476, lng: 67.0549, city: "Karachi" },
-  { area: "Nazimabad No.3", lat: 24.9237, lng: 67.0317, city: "Karachi" },
-  { area: "Bahadurabad", lat: 24.8787, lng: 67.0639, city: "Karachi" },
-  { area: "Tariq Road", lat: 24.8638, lng: 67.0653, city: "Karachi" },
-  { area: "Federal B Area Block 4", lat: 24.9304, lng: 67.0697, city: "Karachi" },
-  { area: "Malir Cantonment", lat: 24.8936, lng: 67.2002, city: "Karachi" },
-  { area: "Korangi", lat: 24.8296, lng: 67.1282, city: "Karachi" },
-  { area: "Landhi", lat: 24.8554, lng: 67.2012, city: "Karachi" },
-  { area: "Orangi Town", lat: 24.9604, lng: 67.0018, city: "Karachi" },
-  { area: "Surjani Town", lat: 25.0165, lng: 67.0416, city: "Karachi" },
-  { area: "Saddar", lat: 24.8607, lng: 67.0099, city: "Karachi" }
-];
-
-function nearestArea(lat: number, lng: number): { area: string; lat: number; lng: number; city: string } {
-  let best = KARACHI_AREAS[0];
-  let bestDist = Infinity;
-  for (const s of KARACHI_AREAS) {
-    const d = Math.abs(s.lat - lat) + Math.abs(s.lng - lng);
-    if (d < bestDist) {
-      bestDist = d;
-      best = s;
-    }
-  }
-  return best;
-}
+import { getNearestKarachiLocation } from '@/data/karachiLocations';
 
 const darkMapStyle = [
   { elementType: 'geometry', stylers: [{ color: '#0f1524' }] },
@@ -93,7 +56,7 @@ export function LocationMapPickerModal({
   useEffect(() => {
     if (visible) {
       setSelectedCoords({ latitude: initialLat, longitude: initialLng });
-      const best = nearestArea(initialLat, initialLng);
+      const best = getNearestKarachiLocation(initialLat, initialLng);
       setSelectedArea(best.area);
       setRegion({
         latitude: initialLat,
@@ -123,7 +86,7 @@ export function LocationMapPickerModal({
   const handleRegionChangeComplete = (newRegion: any) => {
     const newLat = newRegion.latitude;
     const newLng = newRegion.longitude;
-    const best = nearestArea(newLat, newLng);
+    const best = getNearestKarachiLocation(newLat, newLng);
     setSelectedCoords({ latitude: newLat, longitude: newLng });
     setSelectedArea(best.area);
   };

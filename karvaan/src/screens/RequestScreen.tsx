@@ -28,10 +28,10 @@ import { useOrchestratorStore } from '@/store/orchestratorStore';
 import { useThemeStore } from '@/store/themeStore';
 import { getIsMockActive } from '@/api/orchestrator';
 import { LocationPickerSheet } from '@/components/LocationPickerSheet';
-import { LocationMapPickerModal } from '@/components/LocationMapPickerModal';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import type { RootStackParamList } from '@/navigation/types';
 import type { UserLocation } from '@/types/api';
+import { findKarachiLocation, getNearestKarachiLocation } from '@/data/karachiLocations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -42,42 +42,6 @@ const EXAMPLE_PROMPTS = [
 ];
 
 const PRIMARY_BLUE = '#1A73E8';
-
-const KARACHI_AREAS: { area: string; lat: number; lng: number; city: string }[] = [
-  { area: "DHA Phase 6", lat: 24.7920, lng: 67.0645, city: "Karachi" },
-  { area: "DHA Phase 2", lat: 24.8104, lng: 67.0657, city: "Karachi" },
-  { area: "Clifton Block 5", lat: 24.8090, lng: 67.0307, city: "Karachi" },
-  { area: "Clifton Block 8", lat: 24.8207, lng: 67.0254, city: "Karachi" },
-  { area: "Gulshan-e-Iqbal Block 13", lat: 24.9197, lng: 67.1134, city: "Karachi" },
-  { area: "Gulshan-e-Iqbal Block 7", lat: 24.9253, lng: 67.1005, city: "Karachi" },
-  { area: "PECHS Block 2", lat: 24.8654, lng: 67.0590, city: "Karachi" },
-  { area: "PECHS Block 6", lat: 24.8694, lng: 67.0635, city: "Karachi" },
-  { area: "North Nazimabad Block H", lat: 24.9439, lng: 67.0505, city: "Karachi" },
-  { area: "North Nazimabad Block J", lat: 24.9476, lng: 67.0549, city: "Karachi" },
-  { area: "Nazimabad No.3", lat: 24.9237, lng: 67.0317, city: "Karachi" },
-  { area: "Bahadurabad", lat: 24.8787, lng: 67.0639, city: "Karachi" },
-  { area: "Tariq Road", lat: 24.8638, lng: 67.0653, city: "Karachi" },
-  { area: "Federal B Area Block 4", lat: 24.9304, lng: 67.0697, city: "Karachi" },
-  { area: "Malir Cantonment", lat: 24.8936, lng: 67.2002, city: "Karachi" },
-  { area: "Korangi", lat: 24.8296, lng: 67.1282, city: "Karachi" },
-  { area: "Landhi", lat: 24.8554, lng: 67.2012, city: "Karachi" },
-  { area: "Orangi Town", lat: 24.9604, lng: 67.0018, city: "Karachi" },
-  { area: "Surjani Town", lat: 25.0165, lng: 67.0416, city: "Karachi" },
-  { area: "Saddar", lat: 24.8607, lng: 67.0099, city: "Karachi" }
-];
-
-function nearestArea(lat: number, lng: number): { area: string; lat: number; lng: number; city: string } {
-  let best = KARACHI_AREAS[0];
-  let bestDist = Infinity;
-  for (const s of KARACHI_AREAS) {
-    const d = Math.abs(s.lat - lat) + Math.abs(s.lng - lng);
-    if (d < bestDist) {
-      bestDist = d;
-      best = s;
-    }
-  }
-  return best;
-}
 
 export function RequestScreen(): React.JSX.Element {
   const navigation = useNavigation<NavigationProp>();
@@ -151,8 +115,6 @@ export function RequestScreen(): React.JSX.Element {
     }
   }, [isListening]);
 
-  const [mapPickerVisible, setMapPickerVisible] = useState(false);
-
   // Proactively request GPS permission and fetch real coordinates on mount
   useEffect(() => {
     requestPermission();
@@ -161,7 +123,7 @@ export function RequestScreen(): React.JSX.Element {
   // Update resolvedLocation based on GPS coordinates
   useEffect(() => {
     if (coords) {
-      const best = nearestArea(coords.latitude, coords.longitude);
+      const best = getNearestKarachiLocation(coords.latitude, coords.longitude);
       setResolvedLocation({
         area: best.area,
         city: best.city,
@@ -200,29 +162,16 @@ export function RequestScreen(): React.JSX.Element {
 
   // Location Picker
   const handleOpenLocationPicker = () => {
-    setMapPickerVisible(true);
+    sheetRef.current?.snapToIndex(0);
   };
 
-  const handleMapConfirm = useCallback((area: string, lat: number, lng: number) => {
-    updateLocationManually({ latitude: lat, longitude: lng }, area);
-    setResolvedLocation({ area, city: 'Karachi', lat, lng });
-  }, [updateLocationManually]);
-
   const handleSelectLocation = useCallback((area: string, lat: number, lng: number) => {
-    const areaObj = KARACHI_AREAS.find(a => a.area === area);
-    const city = areaObj ? areaObj.city : 'Karachi';
-    
-    // If real GPS coordinates are available, use high-precision device lat/lng for selected area
-    let finalLat = lat;
-    let finalLng = lng;
-    if (coords) {
-      finalLat = coords.latitude;
-      finalLng = coords.longitude;
-    }
-    updateLocationManually({ latitude: finalLat, longitude: finalLng }, area);
-    setResolvedLocation({ area, city, lat: finalLat, lng: finalLng });
+    const areaObj = findKarachiLocation(area);
+    const city = areaObj?.city ?? 'Karachi';
+    updateLocationManually({ latitude: lat, longitude: lng }, area);
+    setResolvedLocation({ area, city, lat, lng });
     sheetRef.current?.close();
-  }, [coords, updateLocationManually]);
+  }, [updateLocationManually]);
 
   // Button micro-animations
   const handlePressIn = () => {
@@ -432,14 +381,6 @@ export function RequestScreen(): React.JSX.Element {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-
-      <LocationMapPickerModal
-        visible={mapPickerVisible}
-        onClose={() => setMapPickerVisible(false)}
-        onConfirm={handleMapConfirm}
-        initialLat={resolvedLocation.lat}
-        initialLng={resolvedLocation.lng}
-      />
 
       <LocationPickerSheet
         sheetRef={sheetRef}

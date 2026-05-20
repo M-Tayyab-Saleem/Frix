@@ -13,6 +13,13 @@ per agent.
 
 from __future__ import annotations
 
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 import json
 import time
 from datetime import datetime, timezone
