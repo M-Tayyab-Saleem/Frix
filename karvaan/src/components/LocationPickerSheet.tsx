@@ -2,14 +2,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList } from '@gorhom/bottom-sheet';
-
-const AREAS = [
-  { area: 'DHA Phase 6', lat: 24.7920, lng: 67.0645, city: 'Karachi' },
-  { area: 'Clifton Block 5', lat: 24.8090, lng: 67.0307, city: 'Karachi' },
-  { area: 'Gulshan-e-Iqbal Block 13', lat: 24.9197, lng: 67.1134, city: 'Karachi' },
-  { area: 'PECHS Block 2', lat: 24.8654, lng: 67.0590, city: 'Karachi' },
-  { area: 'Saddar', lat: 24.8607, lng: 67.0099, city: 'Karachi' },
-];
+import { KARACHI_LOCATIONS } from '@/data/karachiLocations';
 
 interface LocationPickerSheetProps {
   sheetRef: React.RefObject<BottomSheet>;
@@ -40,8 +33,7 @@ export function LocationPickerSheet({
   // Dynamically sort the areas so the user's nearest local areas appear at the top
   const sortedAreas = useMemo(() => {
     if (!userCoords) {
-      // Group-sort: Show current city's areas first, then other cities
-      return [...AREAS].sort((a, b) => {
+      return [...KARACHI_LOCATIONS].sort((a, b) => {
         const aMatch = a.city.toLowerCase() === currentCity.toLowerCase();
         const bMatch = b.city.toLowerCase() === currentCity.toLowerCase();
         if (aMatch && !bMatch) return -1;
@@ -50,8 +42,7 @@ export function LocationPickerSheet({
       });
     }
 
-    // Sort strictly by physical proximity to the user's GPS location
-    return [...AREAS].sort((a, b) => {
+    return [...KARACHI_LOCATIONS].sort((a, b) => {
       const distA = getDistance(userCoords.latitude, userCoords.longitude, a.lat, a.lng);
       const distB = getDistance(userCoords.latitude, userCoords.longitude, b.lat, b.lng);
       return distA - distB;
@@ -69,15 +60,23 @@ export function LocationPickerSheet({
       handleIndicatorStyle={styles.handleIndicator}
     >
       <View style={styles.container}>
-        <Text style={styles.title}>Select Your Area</Text>
-        <Text style={styles.subtitle}>
-          Choose your location (nearest areas sorted first)
-        </Text>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.title}>Select Your Area</Text>
+            <Text style={styles.subtitle}>Choose from all mock locations.</Text>
+          </View>
+        </View>
 
         <BottomSheetFlatList
           data={sortedAreas}
           keyExtractor={(item) => `${item.city}-${item.area}`}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            <View style={styles.currentLocationCard}>
+              <Text style={styles.currentLocationLabel}>Current selection</Text>
+              <Text style={styles.currentLocationValue}>{currentArea}</Text>
+            </View>
+          }
           renderItem={({ item }) => {
             const isSelected = item.area === currentArea;
             return (
@@ -120,6 +119,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
   },
+  headerRow: {
+    marginBottom: 16,
+  },
   title: {
     fontSize: 20,
     fontWeight: '700',
@@ -134,6 +136,27 @@ const styles = StyleSheet.create({
   listContent: {
     gap: 12,
     paddingBottom: 24,
+  },
+  currentLocationCard: {
+    backgroundColor: '#0D1117',
+    borderWidth: 1,
+    borderColor: '#2D3748',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+  },
+  currentLocationLabel: {
+    color: '#9AA0A6',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  currentLocationValue: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 6,
   },
   itemCard: {
     flexDirection: 'row',

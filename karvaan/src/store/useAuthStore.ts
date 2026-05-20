@@ -20,12 +20,20 @@
  * ```
  */
 import { create } from 'zustand';
-import { Session } from '@supabase/supabase-js';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import { storage, STORAGE_KEYS } from '@/lib/storage';
 import { posthog, mergeGuestSession as posthogMerge } from '@/lib/analytics';
 import { Analytics } from '@/services/analytics';
+
+export interface Session {
+  user: {
+    id: string;
+    email?: string;
+    user_metadata?: Record<string, any>;
+  };
+  access_token?: string;
+}
 
 /**
  * AuthState interface for the v5 authentication model.

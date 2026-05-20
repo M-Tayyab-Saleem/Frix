@@ -1,7 +1,7 @@
 # T-12 — Network Resilience: Offline + Slow API Implementation
 
 ## Overview
-T-12 implements comprehensive network resilience handling for the ServisAI mobile app, ensuring graceful degradation when users go offline or experience slow API responses.
+T-12 implements comprehensive network resilience handling for the Frix mobile app, ensuring graceful degradation when users go offline or experience slow API responses.
 
 ## Acceptance Criteria Status
 

@@ -11,10 +11,6 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://skbejpwpivaktfzmlidl.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrYmVqcHdwaXZha3Rmem1saWRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NzcwNzEsImV4cCI6MjA5MjM1MzA3MX0.dbskC4wXprEjrLG0U0nuIhh3F38Ccp23H2_5AxITDVQ",
-        "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_n4qeBtB7LrH4oUGNS4UcjaobNFsNdXsvRqAcFQ7hq7Z3",
-        "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com",
         "EXPO_PUBLIC_SENTRY_DSN": "https://298b4560c06d17debc2b70f5b64aa89b@o4511201021526016.ingest.us.sentry.io/4511201024606208",
         "EXPO_PUBLIC_MMKV_ENCRYPTION_KEY": "16eaceb6c6437aa198875ce08b5c607a909217baf5e1a2aefe49b3e6d7052275",
         "SENTRY_AUTH_TOKEN": "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",
@@ -25,10 +21,6 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://skbejpwpivaktfzmlidl.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrYmVqcHdwaXZha3Rmem1saWRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NzcwNzEsImV4cCI6MjA5MjM1MzA3MX0.dbskC4wXprEjrLG0U0nuIhh3F38Ccp23H2_5AxITDVQ",
-        "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_n4qeBtB7LrH4oUGNS4UcjaobNFsNdXsvRqAcFQ7hq7Z3",
-        "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com",
         "EXPO_PUBLIC_SENTRY_DSN": "https://298b4560c06d17debc2b70f5b64aa89b@o4511201021526016.ingest.us.sentry.io/4511201024606208",
         "EXPO_PUBLIC_MMKV_ENCRYPTION_KEY": "16eaceb6c6437aa198875ce08b5c607a909217baf5e1a2aefe49b3e6d7052275",
         "SENTRY_AUTH_TOKEN": "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",
