@@ -10,3 +10,5 @@ dependencies = [
     "pydantic>=2.9.0",
     "python-dotenv>=1.0.1",
 ]
+[tool.fastapi]
+entrypoint = "app.api:app"
