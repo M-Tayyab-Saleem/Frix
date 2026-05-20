@@ -1,4 +1,4 @@
-package com.karvaan.app
+package com.frix.app
 
 import android.os.Build
 import android.os.Bundle

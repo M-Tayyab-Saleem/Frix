@@ -29,18 +29,18 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="karvaan"/>
-        <data android:scheme="com.karvaan.app"/>
+        <data android:scheme="frix"/>
+        <data android:scheme="com.frix.app"/>
       </intent-filter>
       <intent-filter android:autoVerify="true" data-generated="true">
         <action android:name="android.intent.action.VIEW"/>
-        <data android:scheme="https" android:host="karvaan.pk" android:pathPrefix="/venue"/>
+        <data android:scheme="https" android:host="frix.pk" android:pathPrefix="/venue"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
       <intent-filter android:autoVerify="true" data-generated="true">
         <action android:name="android.intent.action.VIEW"/>
-        <data android:scheme="karvaan" android:host="venue" android:pathPrefix="/"/>
+        <data android:scheme="frix" android:host="venue" android:pathPrefix="/"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>

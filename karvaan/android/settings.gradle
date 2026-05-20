@@ -21,7 +21,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
   }
 }
 
-rootProject.name = 'karvaan-app'
+rootProject.name = 'frix-app'
 
 dependencyResolutionManagement {
   versionCatalogs {

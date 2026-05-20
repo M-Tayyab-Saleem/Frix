@@ -1,4 +1,4 @@
-package com.karvaan.app
+package com.frix.app
 
 import android.app.Application
 import android.content.res.Configuration

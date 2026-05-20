@@ -85,7 +85,6 @@
           "locationAlwaysPermission": "Allow Frix to use your location."
         }
       ],
-
       [
         "expo-build-properties",
         {
@@ -98,8 +97,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "c430f6d8-3e11-4454-a7d4-c72672e3f45a"
+        "projectId": "425ecfd2-0cdd-487a-8342-f2535ee92389"
       }
-    }
+    },
+    "owner": "mtayyabsaleem"
   }
 }

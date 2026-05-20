@@ -1,9 +1,13 @@
-# Dependency directories
 node_modules/
 
 # Build artifacts
 android/
 ios/
+.expo/
+dist/
+build/
+
+# Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -13,26 +17,33 @@ yarn-error.log*
 .git/
 .github/
 
-# Testing and Mocks
+# Testing
 .maestro/
 __tests__/
 __mocks__/
 
-# Project specific bloat
-supabase/
-assets/fonts/README.md
-assets/fonts/download-fonts.ps1
-
-# Environment and secrets (EAS handles these separately)
+# Environment
 .env*
 
-# Documentation
+# Docs
+docs/
 *.md
 !README.md
-docs/
 
+# Project bloat
+supabase/
 implementation_summary/
 .agent/
 scratch/
 scripts/
 design-system/
+
+# 🔥 IMPORTANT: assets cleanup (this is key)
+assets/videos/
+assets/raw/
+assets/**/*.mp4
+assets/**/*.mov
+assets/**/*.mkv
+
+# optional (ONLY if safe in your project)
+assets/temp/
