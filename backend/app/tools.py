@@ -31,6 +31,21 @@ def _haversine_km(a: tuple[float, float], b: tuple[float, float]) -> float:
     return round(2 * 6371.0 * math.asin(math.sqrt(h)), 2)
 
 
+def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Public haversine distance (km) between two GPS points.
+
+    Args:
+        lat1: Latitude of first point.
+        lng1: Longitude of first point.
+        lat2: Latitude of second point.
+        lng2: Longitude of second point.
+
+    Returns:
+        Great-circle distance in kilometres.
+    """
+    return _haversine_km((lat1, lng1), (lat2, lng2))
+
+
 def find_providers_raw(
     service_type: str,
     location: str,

@@ -147,7 +147,9 @@ export function RequestScreen(): React.JSX.Element {
     setIsManualLang(true);
   };
 
-  // Mic simulation
+  // Voice approach: C (keyboard fallback / simulated input via expo-av placeholder)
+  // No new voice packages installed. Mic state toggles, provides visual feedback,
+  // then auto-fills a sample prompt after 2 seconds to demonstrate the flow.
   const handleMicPress = () => {
     if (isListening) return;
     setIsListening(true);
@@ -197,7 +199,7 @@ export function RequestScreen(): React.JSX.Element {
     if (isUrl) {
       Alert.alert(
         '⚠️ Invalid Service Request',
-        'Your request looks like a URL, web address, or local IP.\n\nPlease describe the actual service you need (e.g., "Need a plumber in G-13" or "Electrician to fix a short circuit").',
+        'Your request looks like a URL, web address, or local IP.\n\nPlease describe the actual service you need (e.g., "Need a plumber in DHA Phase 6" or "Electrician to fix a short circuit in Clifton").',
         [{ text: 'Got it', style: 'default' }]
       );
       return;

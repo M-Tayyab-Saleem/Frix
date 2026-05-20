@@ -2,7 +2,7 @@
 // Renders the booking checkout detail, offering calendar slots, transparent price breakdowns,
 // and an animated swipe-to-confirm slider component.
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -48,6 +48,9 @@ export function BookingConfirmScreen(): React.JSX.Element {
 
   const [selectedSlot, setSelectedSlot] = useState('Today, 03:00 PM - 05:00 PM');
   const [swipeComplete, setSwipeComplete] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);  // CHECK 10.4
+  const receiptScale = useRef(new Animated.Value(0)).current;
+  const receiptOpacity = useRef(new Animated.Value(0)).current;
 
   // Generate dynamic stable fallback values if response is missing (e.g. booked directly from map)
   const fallbackConfirmationId = useRef(`K-${Math.floor(100000 + Math.random() * 900000)}`).current;
@@ -56,6 +59,46 @@ export function BookingConfirmScreen(): React.JSX.Element {
   const confirmationId = response?.booking?.confirmation_id || fallbackConfirmationId;
   const message = response?.booking?.message || 'booked';
   const reminderAt = response?.followup?.reminder_at || 'tomorrow morning';
+
+  // CHECK 10.3 — Persist booking to store immediately on mount (not after animation)
+  useEffect(() => {
+    if (selectedProvider) {
+      const newBooking: BookingResult = {
+        provider_id: selectedProvider.id || 'p_001',
+        provider_name: selectedProvider.name,
+        slot: response?.booking?.slot || selectedSlot,
+        confirmation_id: response?.booking?.confirmation_id || fallbackConfirmationId,
+        message: response?.booking?.message || 'Booking confirmed',
+        followup_reminder_at: response?.followup?.reminder_at || 'tomorrow morning',
+        status: 'CONFIRMED',
+        createdAt: new Date().toISOString(),
+      };
+      addBooking(newBooking);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // CHECK 10.4 — spring-animate receipt card into view after log completes
+  const handleLogComplete = () => {
+    setShowReceipt(true);
+    Animated.parallel([
+      Animated.spring(receiptScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 7,
+        tension: 80,
+      }),
+      Animated.timing(receiptOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    // Navigate to BookingDetail after brief pause
+    setTimeout(() => {
+      navigation.replace('BookingDetail', { confirmationId });
+    }, 1200);
+  };
 
   // Animation values for swipe interaction
   const panX = useRef(new Animated.Value(0)).current;
@@ -106,8 +149,7 @@ export function BookingConfirmScreen(): React.JSX.Element {
   ).current;
 
   const handleConfirmBooking = () => {
-    // We already have booking data from the response or generated dynamically!
-    // We will save it to the store in the onComplete callback of ExecutionLogView
+    // Booking already persisted in useEffect on mount (CHECK 10.3)
   };
 
   const bookingSteps = [
@@ -165,26 +207,21 @@ export function BookingConfirmScreen(): React.JSX.Element {
               <Text style={styles.sectionLabel}>Execution Log</Text>
               <ExecutionLogView 
                 steps={bookingSteps} 
-                onComplete={() => {
-                  const newBooking: BookingResult = {
-                    provider_id: selectedProvider.id || 'p_001',
-                    provider_name: selectedProvider.name,
-                    slot: slot,
-                    confirmation_id: confirmationId,
-                    message: response?.booking?.message || 'Booking confirmed',
-                    followup_reminder_at: response?.followup?.reminder_at || reminderAt,
-                    status: 'CONFIRMED',
-                    createdAt: new Date().toISOString(),
-                  };
-                  addBooking(newBooking);
-                  navigation.replace('BookingDetail', { confirmationId: confirmationId });
-                }}
+                onComplete={handleLogComplete}
               />
-              <View style={styles.receiptContainer}>
-                <Text style={styles.receiptLabel}>Confirmation ID:</Text>
-                <Text style={styles.receiptId}>{confirmationId}</Text>
-                <Text style={styles.receiptReminder}>Reminder: {formatSlot(reminderAt)}</Text>
-              </View>
+              {/* CHECK 10.4 — receipt springs in AFTER log completes */}
+              {showReceipt && (
+                <Animated.View
+                  style={[
+                    styles.receiptContainer,
+                    { opacity: receiptOpacity, transform: [{ scale: receiptScale }] },
+                  ]}
+                >
+                  <Text style={styles.receiptLabel}>Confirmation ID:</Text>
+                  <Text style={styles.receiptId}>{confirmationId}</Text>
+                  <Text style={styles.receiptReminder}>Reminder: {formatSlot(reminderAt)}</Text>
+                </Animated.View>
+              )}
             </View>
           ) : (
             <View style={styles.sectionCard}>

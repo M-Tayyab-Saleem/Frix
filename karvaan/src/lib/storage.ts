@@ -50,11 +50,11 @@ export const STORAGE_KEYS = {
   LAST_KNOWN_LOCATION: 'last_known_location',
   LOCATION_PERMISSION_ASKED: 'location_permission_asked',
   NEAR_ME_RADIUS: 'near_me_radius',
-  // --- Phase 2: Frix orchestrator keys ---
-  BOOKINGS: 'frix_bookings',
-  RECENT_REQUESTS: 'frix_recent_requests',
+  // --- Phase 2: Frix orchestrator keys (servisai_ prefix per audit spec) ---
+  BOOKINGS: 'servisai_bookings',
+  RECENT_REQUESTS: 'servisai_recent_requests',
   ONBOARDING_COMPLETE: 'frix_onboarding_complete',
-  USER_LOCATION: 'frix_user_location',
+  USER_LOCATION: 'servisai_user_location',
   // --- T-11: Demo safety net ---
   MOCK_MODE_ENABLED: 'frix_mock_mode_enabled',
 } as const;

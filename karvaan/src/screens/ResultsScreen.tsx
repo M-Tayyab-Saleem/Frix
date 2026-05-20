@@ -27,16 +27,30 @@ import { Ionicons } from '@expo/vector-icons';
 
 type ResultsScreenRouteProp = RouteProp<RootStackParamList, 'Results'>;
 
+// Language label map — fixes CHECK 8.4
+const LANG_LABELS: Record<string, string> = {
+  roman_urdu: 'Roman Urdu',
+  urdu: 'اردو',
+  english: 'English',
+  mixed: 'Mixed',
+  unknown: 'Unknown',
+};
+
 export function ResultsScreen(): React.JSX.Element {
   const route = useRoute<ResultsScreenRouteProp>();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const { response } = route.params;
-  const { setSelectedProvider } = useOrchestratorStore();
+  const { setSelectedProvider, clearCurrent } = useOrchestratorStore();
 
   const { intent, top_providers, trace } = response;
   const recommendedProvider = response.recommended || top_providers[0];
   const otherProviders = top_providers.filter((p) => p.id !== recommendedProvider.id);
+
+  // Confidence badge — CHECK 8.5
+  const confidenceScore = recommendedProvider?.score ?? 0;
+  const confidence = confidenceScore >= 0.8 ? 'HIGH' : confidenceScore >= 0.6 ? 'MEDIUM' : 'LOW';
+  const confidenceColor = confidenceScore >= 0.8 ? Colors.scoreGreen : confidenceScore >= 0.6 ? Colors.scoreAmber : Colors.scoreRed;
 
   const handleBack = () => {
     navigation.navigate('MainTabs');
@@ -116,7 +130,7 @@ export function ResultsScreen(): React.JSX.Element {
               <View style={styles.gridItem}>
                 <Text style={styles.gridLabel}>INPUT LANGUAGE</Text>
                 <Text style={styles.gridValue} numberOfLines={1}>
-                  <Ionicons name="language" size={12} color={Colors.border} /> {(intent.language_detected || 'english').toUpperCase()}
+                  <Ionicons name="language" size={12} color={Colors.border} /> {LANG_LABELS[intent.language_detected] || intent.language_detected}
                 </Text>
               </View>
 
@@ -130,6 +144,14 @@ export function ResultsScreen(): React.JSX.Element {
                   <Ionicons name="flash" size={12} color={Colors.success} /> {(intent.time_window || 'immediate').toUpperCase()}
                 </Text>
               </View>
+            </View>
+
+            {/* Confidence badge — CHECK 8.5 */}
+            <View style={[styles.confidenceBadge, { borderColor: confidenceColor }]}>
+              <Ionicons name="analytics" size={11} color={confidenceColor} />
+              <Text style={[styles.confidenceBadgeText, { color: confidenceColor }]}>
+                {confidence} CONFIDENCE
+              </Text>
             </View>
           </View>
 
@@ -165,6 +187,16 @@ export function ResultsScreen(): React.JSX.Element {
               ))}
             </View>
           )}
+
+          {/* New Request button — CHECK 8.8 */}
+          <TouchableOpacity
+            style={styles.newRequestButton}
+            onPress={() => { clearCurrent(); navigation.navigate('MainTabs'); }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="arrow-back-circle-outline" size={16} color={Colors.textHint} />
+            <Text style={styles.newRequestButtonText}>New Request</Text>
+          </TouchableOpacity>
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
@@ -277,5 +309,38 @@ const styles = StyleSheet.create({
   },
   alternativesContainer: {
     marginTop: 8,
+  },
+  confidenceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 12,
+    gap: 5,
+    backgroundColor: '#111827',
+  },
+  confidenceBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  newRequestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#2D3748',
+    gap: 8,
+  },
+  newRequestButtonText: {
+    color: Colors.textHint,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

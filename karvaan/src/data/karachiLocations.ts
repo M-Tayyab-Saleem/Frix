@@ -33,7 +33,17 @@ export function getNearestKarachiLocation(lat: number, lng: number): KarachiLoca
   let bestDist = Infinity;
 
   for (const location of KARACHI_LOCATIONS) {
-    const dist = Math.abs(location.lat - lat) + Math.abs(location.lng - lng);
+    // Haversine distance (not flat-earth abs difference) — CHECK 12.2
+    const R = 6371;
+    const dLat = ((location.lat - lat) * Math.PI) / 180;
+    const dLng = ((location.lng - lng) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat * Math.PI) / 180) *
+        Math.cos((location.lat * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     if (dist < bestDist) {
       bestDist = dist;
       best = location;

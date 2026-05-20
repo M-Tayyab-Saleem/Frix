@@ -59,6 +59,13 @@ class ServiceIntent(BaseModel):
     notes: Optional[str] = Field(
         default=None, description="Any extra detail extracted from the prompt."
     )
+    # User GPS coordinates passed through from request for accurate haversine distance
+    user_lat: Optional[float] = Field(
+        default=None, description="User latitude (from GPS or area centroid)."
+    )
+    user_lng: Optional[float] = Field(
+        default=None, description="User longitude (from GPS or area centroid)."
+    )
 
 
 class Provider(BaseModel):
