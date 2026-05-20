@@ -14,6 +14,7 @@ per agent.
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -35,6 +36,36 @@ from .schemas import (
     TraceResponse,
     TraceStep,
 )
+
+# ─── Console helpers ────────────────────────────────────────────────────────────
+RESET  = "\033[0m"
+BOLD   = "\033[1m"
+CYAN   = "\033[96m"
+GREEN  = "\033[92m"
+YELLOW = "\033[93m"
+MAGENTA= "\033[95m"
+BLUE   = "\033[94m"
+RED    = "\033[91m"
+DIM    = "\033[2m"
+
+def _banner(title: str, color: str = CYAN) -> None:
+    width = 68
+    bar = "═" * width
+    print(f"\n{color}{BOLD}╔{bar}╗")
+    print(f"║  {title:<{width - 2}}║")
+    print(f"╚{bar}╝{RESET}")
+
+def _section(label: str, color: str = YELLOW) -> None:
+    print(f"\n{color}{BOLD}▶  {label}{RESET}")
+
+def _kv(key: str, value: str, color: str = DIM) -> None:
+    print(f"   {BOLD}{key}:{RESET} {color}{value}{RESET}")
+
+def _ok(msg: str) -> None:
+    print(f"   {GREEN}✔  {msg}{RESET}")
+
+def _done(label: str, elapsed: float) -> None:
+    print(f"   {GREEN}✔  {label} completed in {elapsed:.2f}s{RESET}")
 
 
 def _now_iso() -> str:
@@ -91,6 +122,25 @@ def _followup_prompt(booking: BookingResult) -> str:
     )
 
 
+def configure_gemini() -> None:
+    """Configures the default AsyncOpenAI client and API for the openai-agents SDK to use Gemini."""
+    import os
+    from openai import AsyncOpenAI
+    import agents
+    
+    api_key = os.getenv("OPENAI_API_KEY")
+    base_url = os.getenv("OPENAI_BASE_URL")
+    if not api_key:
+        return
+        
+    client = AsyncOpenAI(
+        api_key=api_key,
+        base_url=base_url
+    )
+    agents.set_default_openai_client(client, use_for_tracing=False)
+    agents.set_default_openai_api("chat_completions")
+
+
 async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
     """Run the full intent → discovery → rank → book → remind chain."""
     import logging
@@ -100,11 +150,84 @@ async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
     current_time = req.current_time or _now_iso()
     steps: list[TraceStep] = []
 
+    start_time = time.time()
+    
+    _banner("KARVAAN AUTOMATIC SERVICE ORCHESTRATOR", CYAN)
+    print(f"{BOLD}► STARTING AUTONOMOUS PIPELINE FOR PROMPT:{RESET}")
+    print(f"  {YELLOW}\"{req.user_prompt}\"{RESET}")
+    if req.user_location:
+        print(f"  {DIM}GPS Coordinates: ({req.user_location.lat}, {req.user_location.lng}) @ Sector {req.user_location.sector}{RESET}")
+    print(f"  {DIM}Timestamp: {current_time}{RESET}\n")
+
+    # Proactive URL/web address/localhost validation at the entry gate
+    prompt_lower = req.user_prompt.lower().strip()
+    is_url = any(x in prompt_lower for x in ["http://", "https://", "localhost", "127.0.0.1", "192.168.", "www.", ".com", ".net", ".org"])
+    if is_url:
+        _banner("INVALID SERVICE REQUEST DETECTED", RED)
+        print(f"   {RED}Reason: Input appears to be a URL, local IP, or web address instead of a valid service request.{RESET}")
+        print(f"   {DIM}Blocked input: \"{req.user_prompt}\"{RESET}\n")
+        
+        intent = ServiceIntent(
+            service_type="unknown",
+            location="unknown",
+            time_window="none",
+            language_detected="unknown",
+            notes="Rejected as URL/web address"
+        )
+        return OrchestratorResponse(
+            intent=intent,
+            top_providers=[],
+            recommended=RankedProvider(
+                id="",
+                name="",
+                category="unknown",
+                location="",
+                distance_km=0.0,
+                rating=0.0,
+                availability="",
+                score=0.0,
+                reasoning="Request rejected because input contains a URL or web address."
+            ),
+            booking=BookingResult(
+                provider_id="",
+                provider_name="",
+                slot="",
+                confirmation_id="",
+                message="No booking made."
+            ),
+            followup=ReminderResult(
+                booking_id="",
+                reminder_at="",
+                channel="none",
+                message="No reminder scheduled."
+            ),
+            trace=TraceResponse(
+                workflow_id=workflow_id,
+                steps=[
+                    TraceStep(agent="ValidationEngine", summary="Rejected input as invalid URL or web address.")
+                ]
+            ),
+            error="Input contains a URL or web address. Please describe the service you need (e.g., 'Need a plumber in G-13')."
+        )
+
+    # Apply OpenAI compatible client configuration for Gemini
+    configure_gemini()
+
     try:
         with trace(workflow_name="ServiceOrchestrator", group_id=workflow_id):
             # 1. IntentParser ----------------------------------------------------
+            _section("1. INTENT PARSER AGENT (IntentParser)", MAGENTA)
+            print(f"   {DIM}Analyzing request language, required trade category, and sector...{RESET}")
+            t_start = time.time()
             intent_res = await Runner.run(intent_agent, _intent_prompt(req))
             intent: ServiceIntent = intent_res.final_output
+            _done("IntentParser", time.time() - t_start)
+            
+            _kv("Detected Trade", intent.service_type.upper(), CYAN)
+            _kv("Target Sector", intent.location, CYAN)
+            _kv("Target Schedule", intent.time_window, CYAN)
+            _kv("Detected Language", intent.language_detected.upper(), CYAN)
+            
             steps.append(
                 TraceStep(
                     agent="IntentParser",
@@ -118,8 +241,17 @@ async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
             )
 
             # 2. ProviderFinder --------------------------------------------------
+            _section("2. DISCOVERY AGENT (ProviderFinder)", BLUE)
+            print(f"   {DIM}Querying directory database for trade type '{intent.service_type}' near sector '{intent.location}'...{RESET}")
+            t_start = time.time()
             disc_res = await Runner.run(discovery_agent, _discovery_prompt(intent))
             candidates = disc_res.final_output  # ProviderCandidates
+            _done("ProviderFinder", time.time() - t_start)
+            
+            print(f"   {BOLD}Discovered Candidates:{RESET}")
+            for idx, p in enumerate(candidates.providers, 1):
+                print(f"     {idx}. {BOLD}{p.name}{RESET} (Sector: {p.sector}, Rating: {p.rating}⭐, Availability: {p.availability})")
+
             steps.append(
                 TraceStep(
                     agent="ProviderFinder",
@@ -129,8 +261,7 @@ async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
             )
 
             if not candidates.providers:
-                # Graceful degradation — no providers, no booking. Return a partial
-                # response with an error message so the frontend can surface it.
+                _section("DEGRADED RUN - NO CANDIDATES FOUND", RED)
                 return OrchestratorResponse(
                     intent=intent,
                     top_providers=[],
@@ -166,6 +297,9 @@ async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
                 )
 
             # 3. Ranker ----------------------------------------------------------
+            _section("3. RANKER AGENT (Ranker)", YELLOW)
+            print(f"   {DIM}Evaluating candidate providers with multi-factor weighting (Distance, Quality, Schedule match)...{RESET}")
+            t_start = time.time()
             candidates_json = json.dumps(
                 [p.model_dump() for p in candidates.providers], indent=2
             )
@@ -177,6 +311,13 @@ async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
                 (p for p in ranked.top_providers if p.id == ranked.recommended_id),
                 ranked.top_providers[0] if ranked.top_providers else None,
             )
+            _done("Ranker", time.time() - t_start)
+            
+            print(f"   {BOLD}Weighted Leaderboard:{RESET}")
+            for idx, p in enumerate(ranked.top_providers, 1):
+                star = "★" if p.id == ranked.recommended_id else " "
+                print(f"     {star} {idx}. {BOLD}{p.name:<25}{RESET} Score: {GREEN}{p.score:.2f}{RESET} | Reason: {DIM}{p.reasoning}{RESET}")
+
             steps.append(
                 TraceStep(
                     agent="Ranker",
@@ -188,6 +329,7 @@ async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
             )
 
             if recommended is None:
+                _section("DEGRADED RUN - NO RECOMMENDED PROVIDER", RED)
                 return OrchestratorResponse(
                     intent=intent,
                     top_providers=[],
@@ -220,10 +362,21 @@ async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
                 )
 
             # 4. Booking ---------------------------------------------------------
+            _section("4. TRANSACTIONAL BOOKING AGENT (Booking)", GREEN)
+            print(f"   {DIM}Securing appointment with {recommended.name} matching preferences...{RESET}")
+            t_start = time.time()
             book_res = await Runner.run(
                 booking_agent, _booking_prompt(recommended, intent, current_time)
             )
             booking: BookingResult = book_res.final_output
+            _done("Booking", time.time() - t_start)
+            
+            _kv("Provider ID", booking.provider_id, GREEN)
+            _kv("Provider Name", booking.provider_name, GREEN)
+            _kv("Confirmed Slot", booking.slot, GREEN)
+            _kv("Confirmation ID", booking.confirmation_id, GREEN)
+            _kv("Status Message", booking.message, GREEN)
+
             steps.append(
                 TraceStep(
                     agent="Booking",
@@ -235,14 +388,30 @@ async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
             )
 
             # 5. FollowUp --------------------------------------------------------
+            _section("5. ENGAGEMENT & RETENTION AGENT (FollowUp)", CYAN)
+            print(f"   {DIM}Scheduling reminders and follow-up notifications...{RESET}")
+            t_start = time.time()
             fu_res = await Runner.run(followup_agent, _followup_prompt(booking))
             followup: ReminderResult = fu_res.final_output
+            _done("FollowUp", time.time() - t_start)
+            
+            _kv("Reminder Booking ID", followup.booking_id, CYAN)
+            _kv("Notification Time", followup.reminder_at, CYAN)
+            _kv("Preferred Channel", followup.channel, CYAN)
+            _kv("Status Message", followup.message, CYAN)
+
             steps.append(
                 TraceStep(
                     agent="FollowUp",
                     summary=f"reminder at {followup.reminder_at} via {followup.channel}",
                 )
             )
+
+        total_duration = time.time() - start_time
+        _banner("AUTONOMOUS FLOW SUCCESSFULLY COMPLETED", GREEN)
+        print(f"   {BOLD}Workflow ID:{RESET} {workflow_id}")
+        print(f"   {BOLD}Total Time: {RESET} {total_duration:.2f}s")
+        print(f"   {BOLD}Decisions:  {RESET} Autonomous agent consensus achieved safely.\n")
 
         return OrchestratorResponse(
             intent=intent,
@@ -254,156 +423,8 @@ async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
         )
 
     except Exception as exc:
-        logger.warning(
-            f"Multi-agent reasoning workflow failed: {exc}. Falling back to deterministic local hybrid orchestrator."
-        )
+        logger.error(f"Multi-agent reasoning workflow failed: {exc}", exc_info=True)
+        _banner("AUTONOMOUS PIPELINE ERROR", RED)
+        print(f"   {RED}Error: {exc}{RESET}\n")
+        raise exc
 
-        # 1. Local Intent Parsing
-        prompt_lower = req.user_prompt.lower()
-        service_type = "ac_technician"
-        if "plumb" in prompt_lower or "nal" in prompt_lower:
-            service_type = "plumber"
-        elif "electr" in prompt_lower or "bijli" in prompt_lower:
-            service_type = "electrician"
-        elif "clean" in prompt_lower or "safai" in prompt_lower:
-            service_type = "house_cleaner"
-        elif "carpent" in prompt_lower or "lakri" in prompt_lower:
-            service_type = "carpenter"
-
-        location = "G-13"
-        for sector in ["G-13", "G-9", "F-10", "F-11", "I-8"]:
-            if sector.lower() in prompt_lower:
-                location = sector
-                break
-
-        language = "english"
-        roman_urdu_words = ["mein", "mujhe", "aaj", "kal", "sham", "subah", "chahiye", "krdo", "karvaan", "hai", "ko"]
-        if any(w in prompt_lower for w in roman_urdu_words):
-            language = "roman_urdu"
-        elif any(ord(c) > 127 for c in req.user_prompt):
-            language = "urdu"
-
-        intent = ServiceIntent(
-            service_type=service_type,
-            location=location,
-            time_window="tomorrow morning",
-            language_detected=language,
-            notes="Local fallback parsed"
-        )
-
-        # 2. Local Discovery
-        from .tools import find_providers_raw, simulate_booking_raw, schedule_reminder_raw
-        candidates_raw = find_providers_raw(service_type, location)
-
-        # 3. Local Ranking with full scores
-        ranked_candidates = []
-        for p in candidates_raw:
-            dist = p["distance_km"]
-            dist_score = 1.0 if dist <= 2.0 else max(0.0, 1.0 - (dist - 2.0) / 8.0)
-            rat = p["rating"]
-            rat_score = max(0.0, (rat - 3.0) / 2.0)
-            avail_score = 0.8
-            final_score = round(dist_score * 0.4 + rat_score * 0.3 + avail_score * 0.3, 2)
-
-            if dist_score >= rat_score and dist_score >= avail_score:
-                reasoning = f"Excellent proximity to {location} ({dist:.1f} km away)."
-            elif rat_score >= dist_score and rat_score >= avail_score:
-                reasoning = f"Highly rated professional with {rat:.1f} stars."
-            else:
-                reasoning = "Good availability slot matches your preferred schedule."
-
-            ranked_candidates.append(
-                RankedProvider(
-                    id=p["id"],
-                    name=p["name"],
-                    category=p["category"],
-                    location=p["location"],
-                    distance_km=p["distance_km"],
-                    rating=p["rating"],
-                    availability=p["availability"],
-                    score=final_score,
-                    reasoning=reasoning
-                )
-            )
-
-        ranked_candidates.sort(key=lambda x: x.score, reverse=True)
-        top_providers = ranked_candidates[:3]
-
-        if not top_providers:
-            # Stub top providers in case search yields empty results
-            top_providers = [
-                RankedProvider(
-                    id="p_001",
-                    name="Ali AC Services",
-                    category="ac_technician",
-                    location="G-13",
-                    distance_km=1.2,
-                    rating=4.7,
-                    availability="tomorrow 10:00 AM",
-                    score=0.93,
-                    reasoning="Closest verified professional matching sector."
-                ),
-                RankedProvider(
-                    id="p_002",
-                    name="CoolBreeze Technicians",
-                    category="ac_technician",
-                    location="F-11",
-                    distance_km=3.4,
-                    rating=4.5,
-                    availability="tomorrow 12:00 PM",
-                    score=0.78,
-                    reasoning="Strong rating with morning slot availability."
-                ),
-                RankedProvider(
-                    id="p_003",
-                    name="ChillPro AC Repair",
-                    category="ac_technician",
-                    location="I-8",
-                    distance_km=6.8,
-                    rating=4.3,
-                    availability="today 8:00 PM",
-                    score=0.61,
-                    reasoning="Qualified specialist option available today."
-                )
-            ]
-
-        recommended = top_providers[0]
-
-        # 4. Local Booking Simulation
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        slot_iso = f"{today}T10:00:00+05:00"
-        booking_raw = simulate_booking_raw(recommended.id, recommended.name, slot_iso)
-        booking = BookingResult(
-            provider_id=booking_raw["provider_id"],
-            provider_name=booking_raw["provider_name"],
-            slot=booking_raw["slot"],
-            confirmation_id=booking_raw["confirmation_id"],
-            message=booking_raw["message"]
-        )
-
-        # 5. Local FollowUp Scheduling
-        followup_raw = schedule_reminder_raw(booking.confirmation_id, booking.slot)
-        followup = ReminderResult(
-            booking_id=followup_raw["booking_id"],
-            reminder_at=followup_raw["reminder_at"],
-            channel=followup_raw["channel"],
-            message=followup_raw["message"]
-        )
-
-        # Trace steps listing
-        steps = [
-            TraceStep(agent="IntentParser", summary=f"service_type={intent.service_type}, location={intent.location}, time_window={intent.time_window}, language={intent.language_detected}"),
-            TraceStep(agent="ProviderFinder", summary=f"found {len(candidates_raw) or 3} candidate provider(s) for {intent.service_type} near {intent.location}"),
-            TraceStep(agent="Ranker", summary=f"top {len(top_providers)} ranked; recommended={recommended.name}"),
-            TraceStep(agent="Booking", summary=f"booked {booking.provider_name} at {booking.slot} (conf={booking.confirmation_id})"),
-            TraceStep(agent="FollowUp", summary=f"reminder at {followup.reminder_at} via {followup.channel}")
-        ]
-
-        return OrchestratorResponse(
-            intent=intent,
-            top_providers=top_providers,
-            recommended=recommended,
-            booking=booking,
-            followup=followup,
-            trace=TraceResponse(workflow_id=workflow_id, steps=steps)
-        )

@@ -1,28 +1,62 @@
 // src/components/LocationPickerSheet.tsx
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList } from '@gorhom/bottom-sheet';
 
 const SECTORS = [
-  { sector: 'G-13', lat: 33.650, lng: 72.990 },
-  { sector: 'F-10', lat: 33.706, lng: 73.022 },
-  { sector: 'F-11', lat: 33.716, lng: 73.010 },
-  { sector: 'G-9',  lat: 33.682, lng: 73.030 },
-  { sector: 'I-8',  lat: 33.671, lng: 73.064 },
+  { sector: 'G-13', lat: 33.650, lng: 72.990, city: 'Islamabad' },
+  { sector: 'F-10', lat: 33.706, lng: 73.022, city: 'Islamabad' },
+  { sector: 'F-11', lat: 33.716, lng: 73.010, city: 'Islamabad' },
+  { sector: 'G-9',  lat: 33.682, lng: 73.030, city: 'Islamabad' },
+  { sector: 'I-8',  lat: 33.671, lng: 73.064, city: 'Islamabad' },
 ];
 
 interface LocationPickerSheetProps {
   sheetRef: React.RefObject<BottomSheet>;
   currentSector: string;
+  currentCity: string;
+  userCoords?: { latitude: number; longitude: number } | null;
   onSelectLocation: (sector: string, lat: number, lng: number) => void;
 }
 
-export function LocationPickerSheet({ sheetRef, currentSector, onSelectLocation }: LocationPickerSheetProps) {
-  const snapPoints = useMemo(() => ['40%', '50%'], []);
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  // Manhattan distance for fast responsive sorting
+  return Math.abs(lat1 - lat2) + Math.abs(lon1 - lon2);
+}
+
+export function LocationPickerSheet({
+  sheetRef,
+  currentSector,
+  currentCity,
+  userCoords,
+  onSelectLocation,
+}: LocationPickerSheetProps) {
+  const snapPoints = useMemo(() => ['40%', '60%'], []);
 
   const renderBackdrop = (props: any) => (
     <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.6} />
   );
+
+  // Dynamically sort the sectors so the user's nearest local sectors appear at the top
+  const sortedSectors = useMemo(() => {
+    if (!userCoords) {
+      // Group-sort: Show current city's sectors first, then other cities
+      return [...SECTORS].sort((a, b) => {
+        const aMatch = a.city.toLowerCase() === currentCity.toLowerCase();
+        const bMatch = b.city.toLowerCase() === currentCity.toLowerCase();
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+        return 0;
+      });
+    }
+
+    // Sort strictly by physical proximity to the user's GPS location
+    return [...SECTORS].sort((a, b) => {
+      const distA = getDistance(userCoords.latitude, userCoords.longitude, a.lat, a.lng);
+      const distB = getDistance(userCoords.latitude, userCoords.longitude, b.lat, b.lng);
+      return distA - distB;
+    });
+  }, [userCoords, currentCity]);
 
   return (
     <BottomSheet
@@ -36,11 +70,13 @@ export function LocationPickerSheet({ sheetRef, currentSector, onSelectLocation 
     >
       <View style={styles.container}>
         <Text style={styles.title}>Select Your Sector</Text>
-        <Text style={styles.subtitle}>Choose your location in Islamabad</Text>
+        <Text style={styles.subtitle}>
+          Choose your location (nearest sectors sorted first)
+        </Text>
 
         <BottomSheetFlatList
-          data={SECTORS}
-          keyExtractor={(item) => item.sector}
+          data={sortedSectors}
+          keyExtractor={(item) => `${item.city}-${item.sector}`}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => {
             const isSelected = item.sector === currentSector;
@@ -56,7 +92,7 @@ export function LocationPickerSheet({ sheetRef, currentSector, onSelectLocation 
                     <Text style={[styles.sectorName, isSelected && styles.sectorNameSelected]}>
                       {item.sector}
                     </Text>
-                    <Text style={styles.cityName}>Islamabad</Text>
+                    <Text style={styles.cityName}>{item.city}</Text>
                   </View>
                 </View>
                 {isSelected && <Text style={styles.checkIcon}>✓</Text>}

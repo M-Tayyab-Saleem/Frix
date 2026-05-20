@@ -1,20 +1,18 @@
 """Mock provider dataset for Islamabad sectors.
 
-Kept deliberately small but diverse so the Ranker has real choices to make.
-Each provider includes a primary `sector` we use to compute a cheap fake
-distance to the user's requested sector.
+Each provider includes a primary `sector` we use to compute distance to the user's requested sector.
 """
 
 from __future__ import annotations
 
-# Approximate centroids (lat, lng) for the Islamabad sectors we care about.
+# Centroids (lat, lng) for Islamabad sectors as defined in api-contract.md.
 # Used by tools.find_providers to compute distance_km between user and provider.
 SECTOR_COORDS: dict[str, tuple[float, float]] = {
-    "G-13": (33.6536, 72.9559),
-    "G-9": (33.6938, 73.0303),
-    "F-10": (33.6979, 73.0156),
-    "F-11": (33.6844, 72.9971),
-    "I-8": (33.6722, 73.0721),
+    "G-13": (33.650, 72.990),
+    "F-10": (33.706, 73.022),
+    "F-11": (33.716, 73.010),
+    "G-9": (33.682, 73.030),
+    "I-8": (33.671, 73.064),
 }
 
 
@@ -56,6 +54,7 @@ MOCK_PROVIDERS: list[dict] = [
         "availability": "tomorrow 9:00 AM",
         "price_range": "PKR 2000–3500",
     },
+
     # ---- Plumbers ----------------------------------------------------------
     {
         "id": "p_010",
@@ -84,6 +83,7 @@ MOCK_PROVIDERS: list[dict] = [
         "availability": "tomorrow 2:00 PM",
         "price_range": "PKR 1200–2500",
     },
+
     # ---- Electricians ------------------------------------------------------
     {
         "id": "p_020",
@@ -112,6 +112,7 @@ MOCK_PROVIDERS: list[dict] = [
         "availability": "tomorrow 9:30 AM",
         "price_range": "PKR 1100–2800",
     },
+
     # ---- Cleaners / maids --------------------------------------------------
     {
         "id": "p_030",
@@ -131,6 +132,7 @@ MOCK_PROVIDERS: list[dict] = [
         "availability": "tomorrow 11:00 AM",
         "price_range": "PKR 2200–4500",
     },
+
     # ---- Carpenters --------------------------------------------------------
     {
         "id": "p_040",

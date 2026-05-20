@@ -40,15 +40,15 @@ const EXAMPLE_PROMPTS = [
   'Kal subah electrician chahiye G-13 mein room light change karne ke liye.',
 ];
 
-const SECTOR_COORDS: { sector: string; lat: number; lng: number }[] = [
-  { sector: 'G-13', lat: 33.650, lng: 72.990 },
-  { sector: 'F-10', lat: 33.706, lng: 73.022 },
-  { sector: 'F-11', lat: 33.716, lng: 73.010 },
-  { sector: 'G-9',  lat: 33.682, lng: 73.030 },
-  { sector: 'I-8',  lat: 33.671, lng: 73.064 },
+const SECTOR_COORDS: { sector: string; lat: number; lng: number; city: string }[] = [
+  { sector: 'G-13', lat: 33.650, lng: 72.990, city: 'Islamabad' },
+  { sector: 'F-10', lat: 33.706, lng: 73.022, city: 'Islamabad' },
+  { sector: 'F-11', lat: 33.716, lng: 73.010, city: 'Islamabad' },
+  { sector: 'G-9',  lat: 33.682, lng: 73.030, city: 'Islamabad' },
+  { sector: 'I-8',  lat: 33.671, lng: 73.064, city: 'Islamabad' },
 ];
 
-function nearestSector(lat: number, lng: number): string {
+function nearestSector(lat: number, lng: number): { sector: string; lat: number; lng: number; city: string } {
   let best = SECTOR_COORDS[0];
   let bestDist = Infinity;
   for (const s of SECTOR_COORDS) {
@@ -58,7 +58,7 @@ function nearestSector(lat: number, lng: number): string {
       best = s;
     }
   }
-  return best.sector;
+  return best;
 }
 
 export function RequestScreen(): React.JSX.Element {
@@ -133,13 +133,18 @@ export function RequestScreen(): React.JSX.Element {
     }
   }, [isListening]);
 
+  // Proactively request GPS permission and fetch real coordinates on mount
+  useEffect(() => {
+    requestPermission();
+  }, [requestPermission]);
+
   // Update resolvedLocation based on GPS coordinates
   useEffect(() => {
     if (coords) {
-      const sector = nearestSector(coords.latitude, coords.longitude);
+      const best = nearestSector(coords.latitude, coords.longitude);
       setResolvedLocation({
-        sector,
-        city: 'Islamabad',
+        sector: best.sector,
+        city: best.city,
         lat: coords.latitude,
         lng: coords.longitude,
       });
@@ -179,10 +184,20 @@ export function RequestScreen(): React.JSX.Element {
   };
 
   const handleSelectLocation = useCallback((sector: string, lat: number, lng: number) => {
-    updateLocationManually({ latitude: lat, longitude: lng }, sector);
-    setResolvedLocation({ sector, city: 'Islamabad', lat, lng });
+    const sectorObj = SECTOR_COORDS.find(s => s.sector === sector);
+    const city = sectorObj ? sectorObj.city : 'Islamabad';
+    
+    // If real GPS coordinates are available, use high-precision device lat/lng for selected sector
+    let finalLat = lat;
+    let finalLng = lng;
+    if (coords) {
+      finalLat = coords.latitude;
+      finalLng = coords.longitude;
+    }
+    updateLocationManually({ latitude: finalLat, longitude: finalLng }, sector);
+    setResolvedLocation({ sector, city, lat: finalLat, lng: finalLng });
     sheetRef.current?.close();
-  }, [updateLocationManually]);
+  }, [coords, updateLocationManually]);
 
   // Button micro-animations
   const handlePressIn = () => {
@@ -200,12 +215,24 @@ export function RequestScreen(): React.JSX.Element {
   };
 
   const handleFindService = () => {
-    if (prompt.trim().length < 5) return;
+    const trimmed = prompt.trim();
+    if (trimmed.length < 5) return;
 
-    addRecentRequest(prompt.trim());
+    // Proactive frontend validation to block URLs, local IPs, or web addresses
+    const isUrl = /https?:\/\/|localhost|127\.0\.0\.1|192\.168\.|www\.[a-z0-9]+|\.[a-z]{2,}/i.test(trimmed);
+    if (isUrl) {
+      Alert.alert(
+        '⚠️ Invalid Service Request',
+        'Your request looks like a URL, web address, or local IP.\n\nPlease describe the actual service you need (e.g., "Need a plumber in G-13" or "Electrician to fix a short circuit").',
+        [{ text: 'Got it', style: 'default' }]
+      );
+      return;
+    }
+
+    addRecentRequest(trimmed);
     
     navigation.navigate('AgentThinking', {
-      userPrompt: prompt.trim(),
+      userPrompt: trimmed,
       userLocation: resolvedLocation,
       currentTime: new Date().toISOString(),
     });
@@ -382,6 +409,8 @@ export function RequestScreen(): React.JSX.Element {
       <LocationPickerSheet
         sheetRef={sheetRef}
         currentSector={resolvedLocation.sector}
+        currentCity={resolvedLocation.city}
+        userCoords={coords ? { latitude: coords.latitude, longitude: coords.longitude } : null}
         onSelectLocation={handleSelectLocation}
       />
     </SafeAreaView>
