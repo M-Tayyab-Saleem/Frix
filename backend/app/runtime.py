@@ -127,6 +127,10 @@ def configure_gemini() -> None:
     import os
     from openai import AsyncOpenAI
     import agents
+    from agents import set_tracing_disabled
+    
+    # Disable global telemetry tracing to suppress non-fatal 401 errors from invalid OpenAI tracing keys
+    set_tracing_disabled(True)
     
     api_key = os.getenv("OPENAI_API_KEY")
     base_url = os.getenv("OPENAI_BASE_URL")
@@ -250,7 +254,7 @@ async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
             
             print(f"   {BOLD}Discovered Candidates:{RESET}")
             for idx, p in enumerate(candidates.providers, 1):
-                print(f"     {idx}. {BOLD}{p.name}{RESET} (Sector: {p.sector}, Rating: {p.rating}⭐, Availability: {p.availability})")
+                print(f"     {idx}. {BOLD}{p.name}{RESET} (Sector: {p.location}, Rating: {p.rating}⭐, Availability: {p.availability})")
 
             steps.append(
                 TraceStep(

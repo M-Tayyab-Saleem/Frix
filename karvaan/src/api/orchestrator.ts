@@ -37,7 +37,7 @@ export function getIsMockActive(): boolean {
  *   - No network request is made.
  *
  * Real path (EXPO_PUBLIC_USE_MOCK=false):
- *   - POSTs to {EXPO_PUBLIC_API_URL}/orchestrate with a 20-second timeout (T-12).
+ *   - POSTs to {EXPO_PUBLIC_API_URL}/orchestrate with a 60-second timeout (T-12).
  *   - Throws an error with apiError attached on non-2xx responses or timeout.
  *   - Network failures and timeouts are caught and tagged appropriately (T-12).
  */
@@ -57,9 +57,9 @@ export async function orchestrate(req: OrchestrateRequest): Promise<OrchestrateR
   const url = `${BASE_URL}/orchestrate`;
   console.log(`[Orchestrator] POST ${url}`);
 
-  // T-12: Create an AbortController for 20-second timeout
+  // T-12: Create an AbortController for 60-second timeout
   const abortController = new AbortController();
-  const timeoutId = setTimeout(() => abortController.abort(), 20000);
+  const timeoutId = setTimeout(() => abortController.abort(), 60000);
 
   try {
     const res = await fetch(url, {
@@ -88,7 +88,7 @@ export async function orchestrate(req: OrchestrateRequest): Promise<OrchestrateR
 
     // T-12: Distinguish timeout from network errors
     if (err.name === 'AbortError') {
-      const timeoutErr = new Error('API request timed out after 20 seconds');
+      const timeoutErr = new Error('API request timed out after 60 seconds');
       Object.assign(timeoutErr, { isTimeout: true, originalError: err });
       console.error(`[Orchestrator] Timeout error:`, timeoutErr.message);
       throw timeoutErr;
