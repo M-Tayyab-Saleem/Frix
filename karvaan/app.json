@@ -20,7 +20,7 @@
         "applinks:frix.pk"
       ],
       "config": {
-        "googleMapsApiKey": "AIzaSyBZjFJbg5BsOmeWAgD-1jQ6_AoPe3jg2u0"
+        "googleMapsApiKey": "AIzaSyAoA9Qpkgb9aO2dAzIUJYjE_9j9tA9y6Aw"
       }
     },
     "android": {
@@ -31,7 +31,7 @@
       "package": "com.frix.app",
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBZjFJbg5BsOmeWAgD-1jQ6_AoPe3jg2u0"
+          "apiKey": "AIzaSyAoA9Qpkgb9aO2dAzIUJYjE_9j9tA9y6Aw"
         }
       },
       "intentFilters": [
@@ -85,6 +85,7 @@
           "locationAlwaysPermission": "Allow Frix to use your location."
         }
       ],
+
       [
         "expo-build-properties",
         {

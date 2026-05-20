@@ -161,7 +161,7 @@ async def run_workflow(req: OrchestrateRequest) -> OrchestratorResponse:
 
     start_time = time.time()
     
-    _banner("KARVAAN AUTOMATIC SERVICE ORCHESTRATOR", CYAN)
+    _banner("FRIX AUTOMATIC SERVICE ORCHESTRATOR", CYAN)
     print(f"{BOLD}► STARTING AUTONOMOUS PIPELINE FOR PROMPT:{RESET}")
     print(f"  {YELLOW}\"{req.user_prompt}\"{RESET}")
     if req.user_location:

@@ -1,6 +1,6 @@
 // src/components/LocationMapPickerModal.tsx
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, Platform } from 'react-native';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, Platform, ActivityIndicator } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -80,6 +80,7 @@ export function LocationMapPickerModal({
 }: LocationMapPickerModalProps) {
   const [selectedCoords, setSelectedCoords] = useState({ latitude: initialLat, longitude: initialLng });
   const [selectedArea, setSelectedArea] = useState('DHA Phase 6');
+  const [shouldRenderMap, setShouldRenderMap] = useState(false);
   const [region, setRegion] = useState({
     latitude: initialLat,
     longitude: initialLng,
@@ -108,6 +109,14 @@ export function LocationMapPickerModal({
           Animated.timing(floatAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
         ])
       ).start();
+
+      // Delay map mounting until modal animates in to avoid 0-height blank map initialization on Android
+      const timer = setTimeout(() => {
+        setShouldRenderMap(true);
+      }, 250);
+      return () => clearTimeout(timer);
+    } else {
+      setShouldRenderMap(false);
     }
   }, [visible, initialLat, initialLng]);
 
@@ -125,16 +134,24 @@ export function LocationMapPickerModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.container}>
-        {/* Dark Google Map */}
-        <MapView
-          provider={PROVIDER_GOOGLE}
-          style={styles.map}
-          customMapStyle={darkMapStyle}
-          region={region}
-          onRegionChangeComplete={handleRegionChangeComplete}
-        />
+        {/* Dark Google Map on Android, Native Apple Map on iOS */}
+        {shouldRenderMap ? (
+          <MapView
+            key={`${initialLat}-${initialLng}`}
+            provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+            style={styles.map}
+            customMapStyle={Platform.OS === 'android' ? darkMapStyle : undefined}
+            initialRegion={region}
+            onRegionChangeComplete={handleRegionChangeComplete}
+          />
+        ) : (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#1A73E8" />
+            <Text style={styles.loadingText}>Loading map...</Text>
+          </View>
+        )}
 
         {/* Header Overlay */}
         <View style={styles.header}>
@@ -182,8 +199,9 @@ export function LocationMapPickerModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
+    height: '100%',
     backgroundColor: '#0F1524',
-    position: 'relative',
   },
   map: {
     ...StyleSheet.absoluteFillObject,
@@ -303,5 +321,17 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  loadingContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0F1524',
+  },
+  loadingText: {
+    color: '#9AA0A6',
+    marginTop: 12,
+    fontSize: 14,
+    fontFamily: 'Manrope-Medium',
   },
 });

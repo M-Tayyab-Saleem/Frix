@@ -51,7 +51,7 @@ The navigation shell, auth patterns, component primitives, and hooks are reusabl
 - Keep any existing `cn()` or style helpers
 
 ### Configuration
-- `app.json` / `app.config.js` — keep, update app name to "ServisAI" or similar
+- `app.json` / `app.config.js` — keep, update app name to "Frix" or similar
 - `babel.config.js` — keep
 - `tsconfig.json` — keep
 - `.env.example` — add `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_USE_MOCK`

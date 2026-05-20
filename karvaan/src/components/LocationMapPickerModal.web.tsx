@@ -1,6 +1,6 @@
 // src/components/LocationMapPickerModal.web.tsx
 import React, { useState, useEffect, useRef } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -82,7 +82,34 @@ export function LocationMapPickerModal({
   // Pan Responder to simulate map dragging on Web
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: (evt, gestureState) => {
+        // Robust coordinate extraction for Web touch/mouse events
+        const native = (evt.nativeEvent || {}) as any;
+        const touches = native.touches || [];
+        const pageY = native.pageY ?? native.clientY ?? (touches[0]?.pageY) ?? 0;
+        const screenHeight = Dimensions.get('window').height || 800;
+        
+        // If coordinate is 0, check the target element to avoid capturing on interactive components
+        if (pageY === 0) {
+          const target = (evt.target as any) || {};
+          const className = String(target.className || '').toLowerCase();
+          const id = String(target.id || '').toLowerCase();
+          if (
+            className.includes('button') || 
+            className.includes('touchable') || 
+            className.includes('btn') ||
+            id.includes('button') ||
+            id.includes('btn')
+          ) {
+            return false;
+          }
+        }
+        
+        if (pageY > 0 && (pageY < 110 || pageY > screenHeight - 250)) {
+          return false;
+        }
+        return true;
+      },
       onPanResponderMove: (e, gestureState) => {
         Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false })(e, gestureState);
         
@@ -105,83 +132,87 @@ export function LocationMapPickerModal({
     onClose();
   };
 
+  if (!visible) return null;
+
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
-      <View style={styles.container}>
-        
-        {/* Visual Map Grid Simulator (Stunning premium web mockup) */}
-        <View style={styles.mapSimulatorContainer} {...panResponder.panHandlers}>
-          <Animated.View
-            style={[
-              styles.mapBackground,
-              {
-                transform: [{ translateX: pan.x }, { translateY: pan.y }],
-              },
-            ]}
-          >
-            {/* Dashed grid lines */}
-            <View style={styles.mapGridLineH1} />
-            <View style={styles.mapGridLineH2} />
-            <View style={styles.mapGridLineV1} />
-            <View style={styles.mapGridLineV2} />
-            
-            {/* Custom styled Karachi Area labels in grid */}
-            <View style={styles.sectorLabel}><Text style={styles.sectorLabelText}>DHA PHASE 6</Text></View>
-            <View style={[styles.sectorLabel, { top: '25%', left: '70%' }]}><Text style={styles.sectorLabelText}>CLIFTON BLOCK 5</Text></View>
-            <View style={[styles.sectorLabel, { top: '15%', left: '42%' }]}><Text style={styles.sectorLabelText}>GULSHAN-E-IQBAL</Text></View>
-            <View style={[styles.sectorLabel, { top: '55%', left: '32%' }]}><Text style={styles.sectorLabelText}>PECHS BLOCK 2</Text></View>
-            <View style={[styles.sectorLabel, { top: '75%', left: '78%' }]}><Text style={styles.sectorLabelText}>SADDAR</Text></View>
-          </Animated.View>
-        </View>
+    <View style={styles.container}>
+      
+      {/* Visual Map Grid Simulator (Stunning premium web mockup) */}
+      <View style={styles.mapSimulatorContainer} {...panResponder.panHandlers}>
+        <Animated.View
+          style={[
+            styles.mapBackground,
+            {
+              transform: [{ translateX: pan.x }, { translateY: pan.y }],
+            },
+          ]}
+        >
+          {/* Dashed grid lines */}
+          <View style={styles.mapGridLineH1} />
+          <View style={styles.mapGridLineH2} />
+          <View style={styles.mapGridLineV1} />
+          <View style={styles.mapGridLineV2} />
+          
+          {/* Custom styled Karachi Area labels in grid */}
+          <View style={styles.sectorLabel}><Text style={styles.sectorLabelText}>DHA PHASE 6</Text></View>
+          <View style={[styles.sectorLabel, { top: '25%', left: '70%' }]}><Text style={styles.sectorLabelText}>CLIFTON BLOCK 5</Text></View>
+          <View style={[styles.sectorLabel, { top: '15%', left: '42%' }]}><Text style={styles.sectorLabelText}>GULSHAN-E-IQBAL</Text></View>
+          <View style={[styles.sectorLabel, { top: '55%', left: '32%' }]}><Text style={styles.sectorLabelText}>PECHS BLOCK 2</Text></View>
+          <View style={[styles.sectorLabel, { top: '75%', left: '78%' }]}><Text style={styles.sectorLabelText}>SADDAR</Text></View>
+        </Animated.View>
+      </View>
 
-        {/* Header Overlay */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={onClose} activeOpacity={0.8}>
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Pin Delivery Location</Text>
-          <View style={{ width: 44 }} />
-        </View>
+      {/* Header Overlay */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={onClose} activeOpacity={0.8}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Pin Delivery Location</Text>
+        <View style={{ width: 44 }} />
+      </View>
 
-        {/* Centered Fixed Pin Indicator representing target point */}
-        <View style={styles.pinContainer} pointerEvents="none">
-          <Animated.View style={{ transform: [{ translateY: floatAnim }] }}>
-            <Ionicons name="location" size={48} color="#1A73E8" style={styles.pinIcon} />
-            <View style={styles.pinDot} />
-          </Animated.View>
-        </View>
+      {/* Centered Fixed Pin Indicator representing target point */}
+      <View style={styles.pinContainer} pointerEvents="none">
+        <Animated.View style={{ transform: [{ translateY: floatAnim }] }}>
+          <Ionicons name="location" size={48} color="#1A73E8" style={styles.pinIcon} />
+          <View style={styles.pinDot} />
+        </Animated.View>
+      </View>
 
-        {/* Premium Bottom Glassmorphic Card */}
-        <View style={styles.bottomCardWrapper}>
-          <View style={styles.glassCard}>
-            <View style={styles.locationHeader}>
-              <View style={styles.iconCircle}>
-                <Ionicons name="navigate" size={20} color="#1A73E8" />
-              </View>
-              <View style={styles.locationMeta}>
-                <Text style={styles.areaLabel}>{selectedArea}</Text>
-                <Text style={styles.cityLabel}>Karachi, Pakistan (Simulated Web Map)</Text>
-                <Text style={styles.coordLabel}>
-                  {selectedCoords.latitude.toFixed(6)}, {selectedCoords.longitude.toFixed(6)}
-                </Text>
-              </View>
+      {/* Premium Bottom Glassmorphic Card */}
+      <View style={styles.bottomCardWrapper}>
+        <View style={styles.glassCard}>
+          <View style={styles.locationHeader}>
+            <View style={styles.iconCircle}>
+              <Ionicons name="navigate" size={20} color="#1A73E8" />
             </View>
-
-            <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} activeOpacity={0.8}>
-              <Text style={styles.confirmBtnText}>Confirm Location</Text>
-            </TouchableOpacity>
+            <View style={styles.locationMeta}>
+              <Text style={styles.areaLabel}>{selectedArea}</Text>
+              <Text style={styles.cityLabel}>Karachi, Pakistan (Simulated Web Map)</Text>
+              <Text style={styles.coordLabel}>
+                {selectedCoords.latitude.toFixed(6)}, {selectedCoords.longitude.toFixed(6)}
+              </Text>
+            </View>
           </View>
+
+          <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} activeOpacity={0.8}>
+            <Text style={styles.confirmBtnText}>Confirm Location</Text>
+          </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    position: 'fixed' as any,
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: '#0F1524',
-    position: 'relative',
+    zIndex: 9999,
   },
   mapSimulatorContainer: {
     ...StyleSheet.absoluteFillObject,

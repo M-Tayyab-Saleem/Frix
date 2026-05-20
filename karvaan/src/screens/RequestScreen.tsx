@@ -1,5 +1,5 @@
 // src/screens/RequestScreen.tsx
-// Core Request screen for ServisAI. Allows users to type prompts, auto-detects language,
+// Core Request screen for Frix. Allows users to type prompts, auto-detects language,
 // resolves location sectors, and initiates the agent thinking process.
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -40,6 +40,8 @@ const EXAMPLE_PROMPTS = [
   'Need a certified plumber in Clifton to fix a leaking tap ASAP.',
   'Kal subah electrician chahiye DHA Phase 6 mein room light change karne ke liye.',
 ];
+
+const PRIMARY_BLUE = '#1A73E8';
 
 const KARACHI_AREAS: { area: string; lat: number; lng: number; city: string }[] = [
   { area: "DHA Phase 6", lat: 24.7920, lng: 67.0645, city: "Karachi" },
@@ -292,142 +294,144 @@ export function RequestScreen(): React.JSX.Element {
   };
 
   return (
-    <SafeAreaView style={s.safeArea} edges={['top']}>
-      <OfflineBanner />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={s.keyboardContainer}
-      >
-        <ScrollView contentContainerStyle={[s.container, { paddingBottom: tabBarHeight + 40 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          {/* Header Title — tap 5× to activate Demo Safety Net (T-11) */}
-          <View style={s.header}>
-            <TouchableOpacity onPress={handlePanicTap} activeOpacity={1}>
-              <Text style={s.title}>What do you need?</Text>
+    <View style={{ flex: 1 }}>
+      <SafeAreaView style={s.safeArea} edges={['top']}>
+        <OfflineBanner />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={s.keyboardContainer}
+        >
+          <ScrollView contentContainerStyle={[s.container, { paddingBottom: tabBarHeight + 40 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            {/* Header Title — tap 5× to activate Demo Safety Net (T-11) */}
+            <View style={s.header}>
+              <TouchableOpacity onPress={handlePanicTap} activeOpacity={1}>
+                <Text style={s.title}>What do you need?</Text>
+              </TouchableOpacity>
+              {isMockActive && (
+                <View style={s.demoBadge}>
+                  <Ionicons name="shield-checkmark" size={12} color="#34A853" />
+                  <Text style={s.demoBadgeText}>DEMO MODE — No backend needed</Text>
+                </View>
+              )}
+              <Text style={s.subtitle}>Our AI Agent will parse your request and orchestrate top local providers.</Text>
+            </View>
+
+            {/* Language Selection Row */}
+            <View style={s.langContainer}>
+              <Text style={s.sectionLabel}>DETECTED LANGUAGE</Text>
+              <View style={s.langRow}>
+                {(['english', 'urdu', 'roman_urdu'] as const).map((lang) => {
+                  const isSelected = selectedLang === lang;
+                  const label =
+                    lang === 'english' ? 'English (EN)' : lang === 'urdu' ? 'اردو (Urdu)' : 'Roman Urdu';
+                  return (
+                    <TouchableOpacity
+                      key={lang}
+                      style={[s.langChip, isSelected && s.langChipActive]}
+                      onPress={() => handleSelectLang(lang)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[s.langText, isSelected && s.langTextActive]}>
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Input Area */}
+            <View style={[s.inputCard, isListening && s.inputCardListening]}>
+              <TextInput
+                style={s.textInput}
+                multiline
+                numberOfLines={4}
+                maxLength={300}
+                value={prompt}
+                onChangeText={handlePromptChange}
+                placeholder={isListening ? "Listening..." : EXAMPLE_PROMPTS[placeholderIndex]}
+                placeholderTextColor={theme.colors.onSurfaceVariant + '80'}
+                editable={!isListening}
+              />
+
+              <View style={s.inputFooter}>
+                <Text style={s.charCount}>{prompt.length}/300</Text>
+                
+                <TouchableOpacity onPress={handleMicPress} activeOpacity={0.7}>
+                  <Animated.View style={[s.micButton, { transform: [{ scale: pulseAnim }] }, isListening && s.micButtonListening]}>
+                    <Ionicons 
+                      name={isListening ? "mic" : "mic-outline"} 
+                      size={18} 
+                      color={isListening ? (theme.colors.onPrimary || "#FFFFFF") : theme.colors.onSurfaceVariant} 
+                    />
+                  </Animated.View>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Location Pill */}
+            <TouchableOpacity
+              style={s.locationPill}
+              onPress={handleOpenLocationPicker}
+              activeOpacity={0.8}
+            >
+              <View style={s.locationPillLeft}>
+                <Ionicons name="location-outline" size={20} color={PRIMARY_BLUE} />
+                {locationLoading ? (
+                  <ActivityIndicator size="small" color={PRIMARY_BLUE} style={s.spinner} />
+                ) : (
+                  <Text style={s.locationText}>
+                    {resolvedLocation.area} · {resolvedLocation.city}
+                  </Text>
+                )}
+              </View>
+              <Ionicons name="create-outline" size={18} color={theme.colors.onSurfaceVariant} />
             </TouchableOpacity>
-            {isMockActive && (
-              <View style={s.demoBadge}>
-                <Ionicons name="shield-checkmark" size={12} color="#34A853" />
-                <Text style={s.demoBadgeText}>DEMO MODE — No backend needed</Text>
+
+            {/* Submit Button */}
+            <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+              <TouchableOpacity
+                style={[s.submitButton, isButtonDisabled && s.submitButtonDisabled]}
+                disabled={isButtonDisabled}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                onPress={handleFindService}
+                activeOpacity={0.9}
+              >
+                <Text style={[s.submitButtonText, isButtonDisabled && s.submitButtonTextDisabled]}>
+                  Find Service
+                </Text>
+                <Ionicons 
+                  name="arrow-forward" 
+                  size={18} 
+                  color={isButtonDisabled ? (theme.colors.onSurfaceVariant + '80') : (theme.colors.onPrimary || "#FFFFFF")} 
+                />
+              </TouchableOpacity>
+            </Animated.View>
+
+            {/* Recent Requests Section */}
+            {recentRequests.length > 0 && (
+              <View style={s.recentContainer}>
+                <Text style={s.recentTitle}>RECENT REQUESTS</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.recentScroll}>
+                  {recentRequests.map((item, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={s.recentChip}
+                      onPress={() => fillPromptFromChip(item)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={s.recentText} numberOfLines={1}>
+                        {item}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
             )}
-            <Text style={s.subtitle}>Our AI Agent will parse your request and orchestrate top local providers.</Text>
-          </View>
-
-          {/* Language Selection Row */}
-          <View style={s.langContainer}>
-            <Text style={s.sectionLabel}>DETECTED LANGUAGE</Text>
-            <View style={s.langRow}>
-              {(['english', 'urdu', 'roman_urdu'] as const).map((lang) => {
-                const isSelected = selectedLang === lang;
-                const label =
-                  lang === 'english' ? 'English (EN)' : lang === 'urdu' ? 'اردو (Urdu)' : 'Roman Urdu';
-                return (
-                  <TouchableOpacity
-                    key={lang}
-                    style={[s.langChip, isSelected && s.langChipActive]}
-                    onPress={() => handleSelectLang(lang)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[s.langText, isSelected && s.langTextActive]}>
-                      {label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* Input Area */}
-          <View style={[s.inputCard, isListening && s.inputCardListening]}>
-            <TextInput
-              style={s.textInput}
-              multiline
-              numberOfLines={4}
-              maxLength={300}
-              value={prompt}
-              onChangeText={handlePromptChange}
-              placeholder={isListening ? "Listening..." : EXAMPLE_PROMPTS[placeholderIndex]}
-              placeholderTextColor={theme.colors.onSurfaceVariant + '80'}
-              editable={!isListening}
-            />
-
-            <View style={s.inputFooter}>
-              <Text style={s.charCount}>{prompt.length}/300</Text>
-              
-              <TouchableOpacity onPress={handleMicPress} activeOpacity={0.7}>
-                <Animated.View style={[s.micButton, { transform: [{ scale: pulseAnim }] }, isListening && s.micButtonListening]}>
-                  <Ionicons 
-                    name={isListening ? "mic" : "mic-outline"} 
-                    size={18} 
-                    color={isListening ? "#FFFFFF" : theme.colors.onSurfaceVariant} 
-                  />
-                </Animated.View>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Location Pill */}
-          <TouchableOpacity
-            style={s.locationPill}
-            onPress={handleOpenLocationPicker}
-            activeOpacity={0.8}
-          >
-            <View style={s.locationPillLeft}>
-              <Ionicons name="location-outline" size={20} color="#1A73E8" />
-              {locationLoading ? (
-                <ActivityIndicator size="small" color="#1A73E8" style={s.spinner} />
-              ) : (
-                <Text style={s.locationText}>
-                  {resolvedLocation.area} · {resolvedLocation.city}
-                </Text>
-              )}
-            </View>
-            <Ionicons name="create-outline" size={18} color={theme.colors.onSurfaceVariant} />
-          </TouchableOpacity>
-
-          {/* Submit Button */}
-          <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-            <TouchableOpacity
-              style={[s.submitButton, isButtonDisabled && s.submitButtonDisabled]}
-              disabled={isButtonDisabled}
-              onPressIn={handlePressIn}
-              onPressOut={handlePressOut}
-              onPress={handleFindService}
-              activeOpacity={0.9}
-            >
-              <Text style={[s.submitButtonText, isButtonDisabled && s.submitButtonTextDisabled]}>
-                Find Service
-              </Text>
-              <Ionicons 
-                name="arrow-forward" 
-                size={18} 
-                color={isButtonDisabled ? (theme.colors.onSurfaceVariant + '80') : "#FFFFFF"} 
-              />
-            </TouchableOpacity>
-          </Animated.View>
-
-          {/* Recent Requests Section */}
-          {recentRequests.length > 0 && (
-            <View style={s.recentContainer}>
-              <Text style={s.recentTitle}>RECENT REQUESTS</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.recentScroll}>
-                {recentRequests.map((item, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={s.recentChip}
-                    onPress={() => fillPromptFromChip(item)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={s.recentText} numberOfLines={1}>
-                      {item}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
 
       <LocationMapPickerModal
         visible={mapPickerVisible}
@@ -444,7 +448,7 @@ export function RequestScreen(): React.JSX.Element {
         userCoords={coords ? { latitude: coords.latitude, longitude: coords.longitude } : null}
         onSelectLocation={handleSelectLocation}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -499,13 +503,13 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
       paddingVertical: 6,
       paddingHorizontal: 12,
       borderRadius: 10,
-      backgroundColor: isDarkMode ? '#1C1B1B' : '#FFFFFF',
+      backgroundColor: theme.colors.surface || (isDarkMode ? '#1C1B1B' : '#FFFFFF'),
       borderWidth: 1,
       borderColor: theme.colors.outlineVariant,
     },
     langChipActive: {
-      backgroundColor: 'rgba(26, 115, 232, 0.12)',
-      borderColor: '#1A73E8',
+      backgroundColor: PRIMARY_BLUE + '1F',
+      borderColor: PRIMARY_BLUE,
     },
     langText: {
       fontFamily: 'Manrope-Medium',
@@ -513,11 +517,11 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
       color: theme.colors.onSurfaceVariant,
     },
     langTextActive: {
-      color: '#1A73E8',
+      color: PRIMARY_BLUE,
       fontWeight: '700',
     },
     inputCard: {
-      backgroundColor: isDarkMode ? '#1C1B1B' : '#FFFFFF',
+      backgroundColor: theme.colors.surface || (isDarkMode ? '#1C1B1B' : '#FFFFFF'),
       borderRadius: 16,
       borderWidth: 1,
       borderColor: theme.colors.outlineVariant,
@@ -530,8 +534,8 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
       elevation: 3,
     },
     inputCardListening: {
-      borderColor: '#1A73E8',
-      backgroundColor: isDarkMode ? '#1A2A44' : '#E8F0FE',
+      borderColor: PRIMARY_BLUE,
+      backgroundColor: PRIMARY_BLUE + '15',
     },
     textInput: {
       fontFamily: 'Manrope-Regular',
@@ -561,21 +565,21 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
       width: 38,
       height: 38,
       borderRadius: 19,
-      backgroundColor: isDarkMode ? '#2A2A2A' : '#EDEADE',
+      backgroundColor: theme.colors.surfaceLow || (isDarkMode ? '#2A2A2A' : '#EDEADE'),
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 1,
       borderColor: theme.colors.outlineVariant,
     },
     micButtonListening: {
-      backgroundColor: '#1A73E8',
-      borderColor: '#1A73E8',
+      backgroundColor: PRIMARY_BLUE,
+      borderColor: PRIMARY_BLUE,
     },
     locationPill: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      backgroundColor: isDarkMode ? '#1C1B1B' : '#FFFFFF',
+      backgroundColor: theme.colors.surface || (isDarkMode ? '#1C1B1B' : '#FFFFFF'),
       borderRadius: 12,
       paddingVertical: 12,
       paddingHorizontal: 16,
@@ -598,13 +602,13 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
     },
     submitButton: {
       flexDirection: 'row',
-      backgroundColor: '#1A73E8',
+      backgroundColor: PRIMARY_BLUE,
       borderRadius: 12,
       height: 52,
       justifyContent: 'center',
       alignItems: 'center',
       gap: 12,
-      shadowColor: '#1A73E8',
+      shadowColor: PRIMARY_BLUE,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 8,
@@ -612,13 +616,13 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
       marginBottom: 30,
     },
     submitButtonDisabled: {
-      backgroundColor: isDarkMode ? '#2A2A2A' : '#EDEADE',
+      backgroundColor: theme.colors.surfaceLow || (isDarkMode ? '#2A2A2A' : '#EDEADE'),
       shadowOpacity: 0,
       elevation: 0,
     },
     submitButtonText: {
       fontFamily: 'Manrope-Bold',
-      color: '#FFFFFF',
+      color: theme.colors.onPrimary || '#FFFFFF',
       fontSize: 16,
       letterSpacing: 0.5,
     },
@@ -664,7 +668,7 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
       paddingBottom: 20,
     },
     recentChip: {
-      backgroundColor: isDarkMode ? '#1C1B1B' : '#FFFFFF',
+      backgroundColor: theme.colors.surface || (isDarkMode ? '#1C1B1B' : '#FFFFFF'),
       borderWidth: 1,
       borderColor: theme.colors.outlineVariant,
       paddingVertical: 8,

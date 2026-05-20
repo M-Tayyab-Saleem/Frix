@@ -2,7 +2,7 @@
 
 ## What Was Implemented
 
-T-12 — Network Resilience: Offline + Slow API provides comprehensive error handling for network failures and slow API responses in the ServisAI app.
+T-12 — Network Resilience: Offline + Slow API provides comprehensive error handling for network failures and slow API responses in the Frix app.
 
 ## Acceptance Criteria Met
 
