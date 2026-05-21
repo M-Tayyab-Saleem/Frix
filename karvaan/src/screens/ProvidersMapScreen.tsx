@@ -398,7 +398,7 @@ export function ProvidersMapScreen(): React.JSX.Element {
 
         {/* Bottom Drawer Overlay */}
         {selectedProviderObj ? (
-          <View style={[styles.bottomCardWrapper, { bottom: tabBarHeight + 20 }]}>
+          <View style={[styles.bottomCardWrapper, { bottom: tabBarHeight + 40 }]}>
             <View style={styles.providerCard}>
               <View style={styles.cardHeader}>
                 <View style={styles.avatarMini}>
@@ -448,7 +448,7 @@ export function ProvidersMapScreen(): React.JSX.Element {
             </View>
           </View>
         ) : (
-          <View style={[styles.hintOverlay, { bottom: tabBarHeight + 20 }]}>
+          <View style={[styles.hintOverlay, { bottom: tabBarHeight + 40 }]}>
             <Text style={styles.hintText}>Tap a location pin to view details</Text>
           </View>
         )}

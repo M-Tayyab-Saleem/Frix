@@ -399,7 +399,7 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
   StyleSheet.create({
     safeArea: {
       flex: 1,
-      backgroundColor: theme.colors.background,
+      backgroundColor: '#0D1117',
     },
     keyboardContainer: {
       flex: 1,
@@ -446,9 +446,9 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
       paddingVertical: 6,
       paddingHorizontal: 12,
       borderRadius: 10,
-      backgroundColor: theme.colors.surface || (isDarkMode ? '#1C1B1B' : '#FFFFFF'),
+      backgroundColor: '#1C2333',
       borderWidth: 1,
-      borderColor: theme.colors.outlineVariant,
+      borderColor: '#2D3748',
     },
     langChipActive: {
       backgroundColor: PRIMARY_BLUE + '1F',
@@ -464,10 +464,10 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
       fontWeight: '700',
     },
     inputCard: {
-      backgroundColor: theme.colors.surface || (isDarkMode ? '#1C1B1B' : '#FFFFFF'),
+      backgroundColor: '#1C2333',
       borderRadius: 16,
       borderWidth: 1,
-      borderColor: theme.colors.outlineVariant,
+      borderColor: '#2D3748',
       padding: 16,
       marginBottom: 20,
       shadowColor: '#000',
@@ -495,7 +495,7 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
       alignItems: 'center',
       marginTop: 12,
       borderTopWidth: 1,
-      borderTopColor: theme.colors.outlineVariant,
+      borderTopColor: '#2D3748',
       paddingTop: 12,
     },
     charCount: {
@@ -508,11 +508,11 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
       width: 38,
       height: 38,
       borderRadius: 19,
-      backgroundColor: theme.colors.surfaceLow || (isDarkMode ? '#2A2A2A' : '#EDEADE'),
+      backgroundColor: '#101726',
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 1,
-      borderColor: theme.colors.outlineVariant,
+      borderColor: '#2D3748',
     },
     micButtonListening: {
       backgroundColor: PRIMARY_BLUE,
@@ -522,12 +522,12 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      backgroundColor: theme.colors.surface || (isDarkMode ? '#1C1B1B' : '#FFFFFF'),
+      backgroundColor: '#1C2333',
       borderRadius: 12,
       paddingVertical: 12,
       paddingHorizontal: 16,
       borderWidth: 1,
-      borderColor: theme.colors.outlineVariant,
+      borderColor: '#2D3748',
       marginBottom: 24,
     },
     locationPillLeft: {
@@ -559,7 +559,7 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
       marginBottom: 30,
     },
     submitButtonDisabled: {
-      backgroundColor: theme.colors.surfaceLow || (isDarkMode ? '#2A2A2A' : '#EDEADE'),
+      backgroundColor: '#101726',
       shadowOpacity: 0,
       elevation: 0,
     },
@@ -611,9 +611,9 @@ const createStyles = (theme: any, isDarkMode: boolean) =>
       paddingBottom: 20,
     },
     recentChip: {
-      backgroundColor: theme.colors.surface || (isDarkMode ? '#1C1B1B' : '#FFFFFF'),
+      backgroundColor: '#1C2333',
       borderWidth: 1,
-      borderColor: theme.colors.outlineVariant,
+      borderColor: '#2D3748',
       paddingVertical: 8,
       paddingHorizontal: 12,
       borderRadius: 10,
